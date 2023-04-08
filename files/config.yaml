@@ -1,0 +1,24 @@
+debug: false
+site:
+  brand: VPS Probe
+  cookiename: nezha-dashboard
+  theme: default
+  customcode: "<script>\r\nwindow.onload = function(){\r\nvar avatar=document.querySelector(\".item
+    img\")\r\nvar footer=document.querySelector(\"div.is-size-7\")\r\nfooter.innerHTML=\"Powered
+    by\"\r\nfooter.style.visibility=\"visible\"\r\navatar.src=\"https://raw.githubusercontent.com/Orz-3/mini/master/Color/Global.png\"\r\navatar.style.visibility=\"visible\"\r\n}\r\n</script>"
+  viewpassword: ""
+oauth2:
+  type: github
+  admin: 
+  clientid: 
+  clientsecret: 
+httpport: 80
+grpcport: 5555
+grpchost: 
+proxygrpcport: 0
+tls: false
+enableipchangenotification: false
+enableplainipinnotification: false
+cover: 0
+ignoredipnotification: ""
+ignoredipnotificationserverids: {}
