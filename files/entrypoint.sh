@@ -14,7 +14,7 @@ if [ -n "$SSH_JSON" ]; then
   SSH_PASSWORD=${SSH_PASSWORD:-password}
   echo root:"$SSH_PASSWORD" | chpasswd root
   sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/g;s/^#\?PasswordAuthentication.*/PasswordAuthentication yes/g' /etc/ssh/sshd_config
-  service sshd restart
+  service ssh restart
   echo "$SSH_JSON" > ssh.json
   echo -e "tunnel: $(cut -d\" -f12 <<< "$SSH_JSON")\ncredentials-file: /dashboard/ssh.json" > ssh.yml
 fi
