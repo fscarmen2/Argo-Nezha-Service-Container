@@ -40,22 +40,18 @@ if [ -n "$SSH_JSON" ]; then
   echo root:"$SSH_PASSWORD" | chpasswd root
   sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/g;s/^#\?PasswordAuthentication.*/PasswordAuthentication yes/g' /etc/ssh/sshd_config
   service ssh restart
-  echo "$SSH_JSON" > ssh.json
-  echo -e "tunnel: $(cut -d\" -f12 <<< "$SSH_JSON")\ncredentials-file: /dashboard/ssh.json" > ssh.yml
 fi
 
 # 根据 Json 生成相应隧道
-JSON=("$WEB_JSON" "$SERVER_JSON")
-FILE=("web" "server")
-
+JSON=("$WEB_JSON" "$SERVER_JSON" "$SSH_JSON")
+FILE=("web" "server" "ssh")
 for ((i=0; i<${#JSON[@]}; i++)); do
-  echo "${JSON[i]}" > ${FILE[i]}.json
+  [ -n "${JSON[i]}" ] && echo "${JSON[i]}" > ${FILE[i]}.json &&
   echo -e "tunnel: $(cut -d\" -f12 <<< "${JSON[i]}")\ncredentials-file: /dashboard/${FILE[i]}.json" > ${FILE[i]}.yml
 done
 
 # 生成 pm2 进程守护配置文件
-if [ -n "$SSH_JSON" ]; then
-  cat > ecosystem.config.js << EOF
+cat > ecosystem.config.js << EOF
 module.exports = {
   "apps":[
     {
@@ -67,28 +63,21 @@ module.exports = {
       "name":"server argo",
       "script":"cloudflared",
       "args":"tunnel --edge-ip-version auto --config /dashboard/server.yml --url tcp://localhost:5555 run"
+EOF
+
+if [ -n "$SSH_JSON" ]; then
+  cat >> ecosystem.config.js << EOF
     },
     {
       "name":"ssh argo",
       "script":"cloudflared",
-      "args":"tunnel --edge-ip-version auto --config /dashboard/server.yml --url ssh://localhost:22 run"
+      "args":"tunnel --edge-ip-version auto --config /dashboard/ssh.yml --url ssh://localhost:22 run"
     }      
   ]
 }
 EOF
 else
-  cat > ecosystem.config.js << EOF
-module.exports = {
-  "apps":[
-    {
-      "name":"web argo",
-      "script":"cloudflared",
-      "args":"tunnel --edge-ip-version auto --config /dashboard/web.yml --url http://localhost:80 run"
-    },
-    {
-      "name":"server argo",
-      "script":"cloudflared",
-      "args":"tunnel --edge-ip-version auto --config /dashboard/server.yml --url tcp://localhost:5555 run"
+  cat >> ecosystem.config.js << EOF
     }
   ]
 }
