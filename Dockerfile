@@ -2,7 +2,7 @@ FROM ghcr.io/naiba/nezha-dashboard
 
 WORKDIR /dashboard
 
-COPY files/* .
+COPY entrypoint.sh .
 
 RUN apt-get update &&\
     apt-get -y install openssh-server curl wget iproute2 npm &&\

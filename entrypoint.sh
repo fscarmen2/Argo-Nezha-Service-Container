@@ -5,9 +5,34 @@
 
 printf "nameserver 127.0.0.11\nnameserver 8.8.4.4\nnameserver 223.5.5.5\n" > /etc/resolv.conf
 
-# 移动哪吒服务端配置文件，并根据参数修改
-mv config.yaml ./data/
-sed -i "s/admin:/& $ADMIN/; s/clientid:/& $CLIENTID/; s/clientsecret:/& $CLIENTSECRET/; s/grpchost:/& $GRPCHOST/; s/by/& $ADMIN/" data/config.yaml
+# 根据参数生成哪吒服务端配置文件
+[ ! -d data ] && mkdir data
+cat > ./data/config.yaml << EOF
+debug: false
+site:
+  brand: VPS Probe
+  cookiename: nezha-dashboard
+  theme: default
+  customcode: "<script>\r\nwindow.onload = function(){\r\nvar avatar=document.querySelector(\".item
+    img\")\r\nvar footer=document.querySelector(\"div.is-size-7\")\r\nfooter.innerHTML=\"Powered
+    by $ADMIN\"\r\nfooter.style.visibility=\"visible\"\r\navatar.src=\"https://raw.githubusercontent.com/Orz-3/mini/master/Color/Global.png\"\r\navatar.style.visibility=\"visible\"\r\n}\r\n</script>"
+  viewpassword: ""
+oauth2:
+  type: github
+  admin: $ADMIN
+  clientid: $CLIENTID
+  clientsecret: $CLIENTSECRET
+httpport: 80
+grpcport: 5555
+grpchost: $GRPCHOST
+proxygrpcport: 0
+tls: false
+enableipchangenotification: false
+enableplainipinnotification: false
+cover: 0
+ignoredipnotification: ""
+ignoredipnotificationserverids: {}
+EOF
 
 # 需要 argo ssh 的，设置变量 SSH_JSON 和 SH_PASSWORD
 if [ -n "$SSH_JSON" ]; then
@@ -20,11 +45,13 @@ if [ -n "$SSH_JSON" ]; then
 fi
 
 # 根据 Json 生成相应隧道
-echo "$WEB_JSON" > web.json
-echo -e "tunnel: $(cut -d\" -f12 <<< "$WEB_JSON")\ncredentials-file: /dashboard/web.json" > web.yml
+JSON=("$WEB_JSON" "$SERVER_JSON")
+FILE=("web" "server")
 
-echo "$SERVER_JSON" > server.json
-echo -e "tunnel: $(cut -d\" -f12 <<< "$SERVER_JSON")\ncredentials-file: /dashboard/server.json" > server.yml
+for ((i=0; i<${#JSON[@]}; i++)); do
+  echo "${JSON[i]}" > ${FILE[i]}.json
+  echo -e "tunnel: $(cut -d\" -f12 <<< "${JSON[i]}")\ncredentials-file: /dashboard/${FILE[i]}.json" > ${FILE[i]}.yml
+done
 
 # 生成 pm2 进程守护配置文件
 if [ -n "$SSH_JSON" ]; then
