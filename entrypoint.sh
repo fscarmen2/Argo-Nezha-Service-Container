@@ -50,40 +50,48 @@ for ((i=0; i<${#JSON[@]}; i++)); do
   echo -e "tunnel: $(cut -d\" -f12 <<< "${JSON[i]}")\ncredentials-file: /dashboard/${FILE[i]}.json" > ${FILE[i]}.yml
 done
 
-# 生成 pm2 进程守护配置文件
-cat > ecosystem.config.js << EOF
-module.exports = {
-  "apps":[
-    {
-      "name":"web argo",
-      "script":"cloudflared",
-      "args":"tunnel --edge-ip-version auto --config /dashboard/web.yml --url http://localhost:80 run"
-    },
-    {
-      "name":"server argo",
-      "script":"cloudflared",
-      "args":"tunnel --edge-ip-version auto --config /dashboard/server.yml --url tcp://localhost:5555 run"
+# 生成 supervisor 进程守护配置文件
+cat > /etc/supervisor/conf.d/supervisor.conf << EOF
+[supervisord]
+nodaemon=true
+logfile=/var/log/supervisord.log
+pidfile=/run/supervisord.pid
+
+[program:nezha]
+command=/dashboard/app
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/nezha.err.log
+stdout_logfile=/var/log/nezha.out.log
+user=root
+
+[program:web_argo]
+command=cloudflared tunnel --edge-ip-version auto --config /dashboard/web.yml --url http://localhost:80 run
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/web_argo.err.log
+stdout_logfile=/var/log/web_argo.out.log
+user=root
+
+[program:server_argo]
+command=cloudflared tunnel --edge-ip-version auto --config /dashboard/server.yml --url tcp://localhost:5555 run
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/server_argo.err.log
+stdout_logfile=/var/log/server_argo.out.log
+user=root
 EOF
 
-if [ -n "$SSH_JSON" ]; then
-  cat >> ecosystem.config.js << EOF
-    },
-    {
-      "name":"ssh argo",
-      "script":"cloudflared",
-      "args":"tunnel --edge-ip-version auto --config /dashboard/ssh.yml --url ssh://localhost:22 run"
-    }      
-  ]
-}
-EOF
-else
-  cat >> ecosystem.config.js << EOF
-    }
-  ]
-}
-EOF
-fi
+[ -n "$SSH_JSON" ] && cat >> /etc/supervisor/conf.d/supervisor.conf << EOF
 
-# 运行 pm2 进程守护和哪吒服务端主程序
-pm2 start
-./app
+[program:ssh_argo]
+command=cloudflared tunnel --edge-ip-version auto --config /dashboard/ssh.yml --url ssh://localhost:22 run
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/ssh_argo.err.log
+stdout_logfile=/var/log/ssh_argo.out.log
+user=root
+EOF
+
+# 运行 supervisor 进程守护
+supervisord -c /etc/supervisor/conf.d/supervisor.conf
