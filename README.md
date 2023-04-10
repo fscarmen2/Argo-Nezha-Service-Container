@@ -35,16 +35,16 @@ Nezha server on container PaaS
 3. 根据平台的规则，填好环境变量(variables)部署即可
 
 * 部署 PaaS 用到的变量 
-  | 变量名        | 是否必须 | 默认值 | 备注 |
-  | ------------ | ------ | ------ | ------ |
-  | ADMIN        | 是 |       | github 的用户名，用于面板管理授权 |
-  | CLIENTID     | 是 |       | 在 github 上申请 |
-  | CLIENTSECRET | 是 |        | 在 github 上申请 |
-  | GRPCHOST     | 是 |        | 客户端与服务端的通信 argo 隧道名 |
-  | SERVER_JSON  | 是 |        | 客户端与服务端的通信 argo json |
-  | WEB_JSON     | 是 |        | 面板 argo json |
-  | SSH_JSON     | 否 |        | ssh 用的 argo json |
-  | SSH_PASSWORD | 否 | password  | ssh 的密码，只有在设置 SSH_JSON 后才生效 |
+  | 变量名        | 是否必须  | 备注 |
+  | ------------ | ------   | ---- |
+  | ADMIN        | 是 | github 的用户名，用于面板管理授权 |
+  | CLIENTID     | 是 | 在 github 上申请 |
+  | CLIENTSECRET | 是 | 在 github 上申请 |
+  | ARGO_JSON    | 是 | 从 https://fscarmen.cloudflare.now.cc 获取的 Argo Json |
+  | DATA_DOMAIN  | 是 | 客户端与服务端的通信 argo 域名 |
+  | WEB_DOMAIN   | 是 | 面板 argo 域名 |
+  | SSH_DOMAIN   | 否 | ssh 用的 argo 域名 |
+  | SSH_PASSWORD | 否 | ssh 的密码，只有在设置 SSH_JSON 后才生效，默认值 password |
 
 ## 鸣谢下列作者的文章和项目:
 * 哪吒官网: https://nezha.wiki/ , TG 群： https://t.me/nezhamonitoring
