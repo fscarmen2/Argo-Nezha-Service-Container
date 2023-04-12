@@ -27,7 +27,6 @@ Nezha server over Argo tunnel
 
 ### 缺点:
 * 服务端和客户端均需要多安装依赖 --- Argo 隧道的两端均需要安装 Cloudflared 用于接入服务，所以如果客服端有公网入口的话，优先使用官方原版
-* 暂时只支持 amd64 架构 --- 受限于官方 Cloudflared cloudflared，暂时只支持 amd64，后续将支持更多的架构
 
 ## 准备需要用的变量
 * 通过 Cloudflare Json 生成网轻松获取 Argo 隧道信息: https://fscarmen.cloudflare.now.cc
@@ -49,7 +48,7 @@ Nezha server over Argo tunnel
 <img width="1122" alt="image" src="https://user-images.githubusercontent.com/92626977/231086319-1b625dc6-713b-4a62-80b1-cc5b2b7ef3ca.png">
 
 ## PaaS 部署实例
-镜像 `fscarmen/argo-nezha:latest`
+镜像 `fscarmen/argo-nezha:latest` ， 支持 amd64 和 arm64 架构
 
 用到的变量 
   | 变量名        | 是否必须  | 备注 |
