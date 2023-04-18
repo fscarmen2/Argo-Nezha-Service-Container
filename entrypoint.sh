@@ -20,11 +20,11 @@ oauth2:
   admin: $ADMIN
   clientid: $CLIENTID
   clientsecret: $CLIENTSECRET
-httpport: 80
+httpport: 4444
 grpcport: 5555
 grpchost: $DATA_DOMAIN
-proxygrpcport: 0
-tls: false
+proxygrpcport: 443
+tls: true
 enableipchangenotification: false
 enableplainipinnotification: false
 cover: 0
@@ -52,11 +52,11 @@ protocol: http2
 
 ingress:
   - hostname: $WEB_DOMAIN
-    service: http://localhost:80
-$SSH_DISABLE  - hostname: $SSH_DOMAIN
-$SSH_DISABLE    service: ssh://localhost:22
+    service: http://localhost:4444
   - hostname: $DATA_DOMAIN
-    service: tcp://localhost:5555
+    service: https://localhost:443
+    originRequest:
+      noTLSVerify: true
   - service: http_status:404
 EOF
 
@@ -75,12 +75,57 @@ stderr_logfile=/var/log/nezha.err.log
 stdout_logfile=/var/log/nezha.out.log
 
 [program:argo]
-command=cloudflared tunnel --edge-ip-version auto --config /dashboard/argo.yml run
+command=cloudflared tunnel  --edge-ip-version auto --config /dashboard/argo.yml run
 autostart=true
 autorestart=true
 stderr_logfile=/var/log/web_argo.err.log
 stdout_logfile=/var/log/web_argo.out.log
 EOF
+
+# 生成 nginx 配置文件 and 自签署SSL证书
+openssl genrsa -out /dashboard/nezha.key 2048
+openssl req -new -subj "/CN=$DATA_DOMAIN" -key nezha.key -out /dashboard/nezha.csr
+openssl x509 -req -days 36500 -in /dashboard/nezha.csr -signkey /dashboard/nezha.key -out /dashboard/nezha.pem
+
+cat > /etc/nginx/nginx.conf  << EOF
+user www-data;
+worker_processes auto;
+pid /run/nginx.pid;
+include /etc/nginx/modules-enabled/*.conf;
+
+events {
+        worker_connections 768;
+        # multi_accept on;
+}
+
+http {
+  upstream grpcservers {
+    server localhost:5555;
+    keepalive 1024;
+  }
+
+  server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name $DATA_DOMAIN;
+
+    ssl_certificate          /dashboard/nezha.pem;
+    ssl_certificate_key      /dashboard/nezha.key;
+
+    underscores_in_headers on;
+
+    location / {
+      grpc_read_timeout 300s;
+      grpc_send_timeout 300s;
+      grpc_socket_keepalive on;
+      grpc_pass grpc://grpcservers;
+    }
+  }
+}
+EOF
+
+# 运行 Nginx
+nginx
 
 # 运行 supervisor 进程守护
 supervisord -c /etc/supervisor/conf.d/supervisor.conf
