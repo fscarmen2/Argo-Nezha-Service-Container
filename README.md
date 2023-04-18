@@ -21,12 +21,11 @@ Nezha server over Argo tunnel
 ### 优点:
 * 适用范围更广 --- 只要能连通网络，就能安装哪吒服务端，如 Nas 虚拟机 , Container PaaS 等
 * Argo 隧道突破需要公网入口的限制 --- 传统的哪吒需要有两个，一个用于面板的访问，另一个用于客户端上报数据，本项目借用 Cloudflare Argo 隧道，使用内网穿透的办法
-* IPv4 / v6 具备更高的灵活性 --- 传统哪吒需要处理服务端和客户端的 IPv4/v6 兼容性问题，还需要通过 warp 等工具来解决不对应的情况。然而，本项目可以完全不需要考虑这些问题，可以任意对接，更加方便和简便。
+* IPv4 / v6 具备更高的灵活性 --- 传统哪吒需要处理服务端和客户端的 IPv4/v6 兼容性问题，还需要通过 warp 等工具来解决不对应的情况。然而，本项目可以完全不需要考虑这些问题，可以任意对接，更加方便和简便
 * 一条 Argo 隧道分流多个域名和协议 --- 建立一条内网穿透的 Argo 隧道，即可分流三个域名(hostname)和协议(protocal)，分别用于面板的访问(http)，客户端上报数据(tcp)和 ssh（可选）
+* Nginx 反向代理的 gRPC 数据端口，配上证书做 tls 终结，然后 Argo 的隧道配置用 https 服务指向这个反向代理，启用http2回源，grpc(nezha)->h2(nginx)->argo->cf cdn edge->agent
 * 数据更安全 --- Argo 隧道使用TLS加密通信，可以将应用程序流量安全地传输到 Cloudflare 网络，提高了应用程序的安全性和可靠性。此外，Argo Tunnel也可以防止IP泄露和DDoS攻击等网络威胁。
 
-### 缺点:
-* ~~服务端和客户端均需要多安装依赖 --- Argo 隧道的两端均需要安装 Cloudflared 用于接入服务，所以如果客服端有公网入口的话，优先使用官方原版~~  已通过gRPC解决
 
 ## 准备需要用的变量
 * 通过 Cloudflare Json 生成网轻松获取 Argo 隧道信息: https://fscarmen.cloudflare.now.cc
@@ -72,6 +71,7 @@ Nezha server over Argo tunnel
 
 
 ## VPS 部署实例
+* 注意: ARGO_JSON= 后面需要有单引号，不能去掉
 ```
 docker run -dit \
            --name nezha_dashboard \
@@ -79,7 +79,7 @@ docker run -dit \
            -e ADMIN=<填 github 用户名> \
            -e CLIENTID=<填获取的>  \
            -e CLIENTSECRET=<填获取的> \
-           -e ARGO_JSON=<填获取的> \
+           -e ARGO_JSON='<填获取的>' \
            -e WEB_DOMAIN=<填自定义的> \
            -e DATA_DOMAIN=<填自定义的> \
            -e SSH_DOMAIN=<填自定义的> \
@@ -88,15 +88,17 @@ docker run -dit \
 ```
 
 ### 客户端接入
-~~wget -O cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && chmod +x cloudflared
-./cloudflared access tcp --hostname <DATA_DOMAIN，即是数据传输的域名> --listener 127.0.0.1:5555 >/dev/null 2>&1 &
-curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install.sh -o nezha.sh && chmod +x nezha.sh && ./nezha.sh install_agent 127.0.0.1 5555 <nezha_key>~~
+通过gRPC传输，无需额外配置。使用面板给到的安装方式，举例
+```
+curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install.sh -o nezha.sh && chmod +x nezha.sh && sudo ./nezha.sh install_agent data.seales.nom.za 443 eAxO9IF519fKFODlW0 --tls
+```
 
-通过gRPC传输，无需额外配置
 
 ## 鸣谢下列作者的文章和项目:
-* 哪吒官网: https://nezha.wiki/ , TG 群： https://t.me/nezhamonitoring
 * 热心的朝阳群众 Robin，讨论哪吒服务端与客户端的关系，从而诞生了此项目
+* 哪吒官网: https://nezha.wiki/ , TG 群: https://t.me/nezhamonitoring
+* 黑歌: http://solitud.es/
+* Akkia's Blog: https://blog.akkia.moe/
 * 用 Cloudflare Tunnel 进行内网穿透: https://blog.outv.im/2021/cloudflared-tunnel/
 
 ## 免责声明:

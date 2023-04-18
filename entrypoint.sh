@@ -10,7 +10,7 @@ printf "nameserver 127.0.0.11\nnameserver 8.8.4.4\nnameserver 223.5.5.5\n" > /et
 cat > ./data/config.yaml << EOF
 debug: false
 site:
-  brand: VPS Probe
+  brand: Nezha Probe
   cookiename: nezha-dashboard
   theme: default
   customcode: "<script>\r\nwindow.onload = function(){\r\nvar avatar=document.querySelector(\".item img\")\r\nvar footer=document.querySelector(\"div.is-size-7\")\r\nfooter.innerHTML=\"Powered by $ADMIN\"\r\nfooter.style.visibility=\"visible\"\r\navatar.src=\"https://raw.githubusercontent.com/Orz-3/mini/master/Color/Global.png\"\r\navatar.style.visibility=\"visible\"\r\n}\r\n</script>"
@@ -20,7 +20,7 @@ oauth2:
   admin: $ADMIN
   clientid: $CLIENTID
   clientsecret: $CLIENTSECRET
-httpport: 4444
+httpport: 80
 grpcport: 5555
 grpchost: $DATA_DOMAIN
 proxygrpcport: 443
@@ -52,34 +52,14 @@ protocol: http2
 
 ingress:
   - hostname: $WEB_DOMAIN
-    service: http://localhost:4444
+    service: http://localhost:80
+$SSH_DISABLE  - hostname: $SSH_DOMAIN
+$SSH_DISABLE    service: ssh://localhost:22
   - hostname: $DATA_DOMAIN
     service: https://localhost:443
     originRequest:
       noTLSVerify: true
   - service: http_status:404
-EOF
-
-# 生成 supervisor 进程守护配置文件
-cat > /etc/supervisor/conf.d/supervisor.conf << EOF
-[supervisord]
-nodaemon=true
-logfile=/var/log/supervisord.log
-pidfile=/run/supervisord.pid
-
-[program:nezha]
-command=/dashboard/app
-autostart=true
-autorestart=true
-stderr_logfile=/var/log/nezha.err.log
-stdout_logfile=/var/log/nezha.out.log
-
-[program:argo]
-command=cloudflared tunnel  --edge-ip-version auto --config /dashboard/argo.yml run
-autostart=true
-autorestart=true
-stderr_logfile=/var/log/web_argo.err.log
-stdout_logfile=/var/log/web_argo.out.log
 EOF
 
 # 生成 nginx 配置文件 and 自签署SSL证书
@@ -124,8 +104,34 @@ http {
 }
 EOF
 
-# 运行 Nginx
-nginx
+# 生成 supervisor 进程守护配置文件
+cat > /etc/supervisor/conf.d/supervisor.conf << EOF
+[supervisord]
+nodaemon=true
+logfile=/var/log/supervisord.log
+pidfile=/run/supervisord.pid
+
+[program:nginx]
+command=nginx
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/nginx.err.log
+stdout_logfile=/var/log/nginx.out.log
+
+[program:nezha]
+command=/dashboard/app
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/nezha.err.log
+stdout_logfile=/var/log/nezha.out.log
+
+[program:argo]
+command=cloudflared tunnel --edge-ip-version auto --config /dashboard/argo.yml run
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/web_argo.err.log
+stdout_logfile=/var/log/web_argo.out.log
+EOF
 
 # 运行 supervisor 进程守护
 supervisord -c /etc/supervisor/conf.d/supervisor.conf
