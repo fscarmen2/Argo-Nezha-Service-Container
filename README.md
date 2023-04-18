@@ -11,7 +11,6 @@ Nezha server over Argo tunnel
 - [准备需要用的变量](README.md#准备需要用的变量)
 - [PaaS 部署实例](README.md#PaaS-部署实例)
 - [VPS 部署实例](README.md#VPS-部署实例)
-- [客户端接入](README.md#客户端接入)
 - [鸣谢下列作者的文章和项目](README.md#鸣谢下列作者的文章和项目)
 - [免责声明](README.md#免责声明)
 
@@ -26,7 +25,7 @@ Nezha server over Argo tunnel
 * 数据更安全 --- Argo 隧道使用TLS加密通信，可以将应用程序流量安全地传输到 Cloudflare 网络，提高了应用程序的安全性和可靠性。此外，Argo Tunnel也可以防止IP泄露和DDoS攻击等网络威胁。
 
 ### 缺点:
-* 服务端和客户端均需要多安装依赖 --- Argo 隧道的两端均需要安装 Cloudflared 用于接入服务，所以如果客服端有公网入口的话，优先使用官方原版
+* ~~服务端和客户端均需要多安装依赖 --- Argo 隧道的两端均需要安装 Cloudflared 用于接入服务，所以如果客服端有公网入口的话，优先使用官方原版~~  已通过gRPC解决
 
 ## 准备需要用的变量
 * 通过 Cloudflare Json 生成网轻松获取 Argo 隧道信息: https://fscarmen.cloudflare.now.cc
@@ -88,11 +87,11 @@ docker run -dit \
 ```
 
 ### 客户端接入
-```
-wget -O cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && chmod +x cloudflared
+~~wget -O cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && chmod +x cloudflared
 ./cloudflared access tcp --hostname <DATA_DOMAIN，即是数据传输的域名> --listener 127.0.0.1:5555 >/dev/null 2>&1 &
-curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install.sh -o nezha.sh && chmod +x nezha.sh && ./nezha.sh install_agent 127.0.0.1 5555 <nezha_key>
-```
+curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install.sh -o nezha.sh && chmod +x nezha.sh && ./nezha.sh install_agent 127.0.0.1 5555 <nezha_key>~~
+
+通过gRPC传输，无需额外配置
 
 ## 鸣谢下列作者的文章和项目:
 * 哪吒官网: https://nezha.wiki/ , TG 群： https://t.me/nezhamonitoring
