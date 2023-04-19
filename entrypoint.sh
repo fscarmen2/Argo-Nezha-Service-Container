@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # 如参数不齐全，容器退出
-[[ -z "$WEB_DOMAIN" || -z "$DATA_DOMAIN" ]] && echo " Variables of WEB_JSON and SERVER_JSON Variables are required. " && exit 1
+[[ -z "$ADMIN" || -z "$CLIENTID" || -z "$CLIENTSECRET" || -z "$ARGO_JSON" || -z "$WEB_DOMAIN" || -z "$DATA_DOMAIN" ]] && echo " There are variables that are not set. " && exit 1
 
 printf "nameserver 127.0.0.11\nnameserver 8.8.4.4\nnameserver 223.5.5.5\n" > /etc/resolv.conf
 

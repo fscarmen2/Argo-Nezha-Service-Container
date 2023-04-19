@@ -32,11 +32,16 @@ Nezha server over Argo tunnel
 
 <img width="1040" alt="image" src="https://user-images.githubusercontent.com/92626977/231084930-02e3c2de-c52b-420d-b39c-9f135d040b3b.png">
 
-* 到 Cloudflare 官方，在相应的域名 DNS 记录里加上客户端上报数据(tcp)和 ssh（可选）的域名
+* 到 Cloudflare 官方，在相应的域名 `DNS` 记录里加上客户端上报数据(tcp)和 ssh（可选）的域名，打开橙色云启用 CDN
 
 <img width="1666" alt="image" src="https://user-images.githubusercontent.com/92626977/231087110-85ddab87-076b-45c9-97d1-c8b051dcb5b0.png">
 
 <img width="1627" alt="image" src="https://user-images.githubusercontent.com/92626977/231087714-e5a45eb9-bc47-4c38-8f5b-a4a9fb492d0d.png">
+
+* 到 Cloudflare 官方，选择使用的域名，打开 `网络` 选项将 `gRPC` 开关打开
+
+<img width="1590" alt="image" src="https://user-images.githubusercontent.com/92626977/233138703-faab8596-a64a-40bb-afe6-52711489fbcf.png">
+
 
 * 获取 github 认证授权: https://github.com/settings/applications/new
 
