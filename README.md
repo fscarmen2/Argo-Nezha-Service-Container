@@ -136,7 +136,7 @@ curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install.sh -
 ## 鸣谢下列作者的文章和项目:
 * 热心的朝阳群众 Robin，讨论哪吒服务端与客户端的关系，从而诞生了此项目
 * 哪吒官网: https://nezha.wiki/ , TG 群: https://t.me/nezhamonitoring
-* 黑歌: http://solitud.es/
+* 共穷国际老中医: http://solitud.es/
 * Akkia's Blog: https://blog.akkia.moe/
 * 用 Cloudflare Tunnel 进行内网穿透: https://blog.outv.im/2021/cloudflared-tunnel/
 
