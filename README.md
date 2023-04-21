@@ -23,9 +23,9 @@ Nezha server over Argo tunnel
 * Argo 隧道突破需要公网入口的限制 --- 传统的哪吒需要有两个，一个用于面板的访问，另一个用于客户端上报数据，本项目借用 Cloudflare Argo 隧道，使用内网穿透的办法
 * IPv4 / v6 具备更高的灵活性 --- 传统哪吒需要处理服务端和客户端的 IPv4/v6 兼容性问题，还需要通过 warp 等工具来解决不对应的情况。然而，本项目可以完全不需要考虑这些问题，可以任意对接，更加方便和简便
 * 一条 Argo 隧道分流多个域名和协议 --- 建立一条内网穿透的 Argo 隧道，即可分流三个域名(hostname)和协议(protocal)，分别用于面板的访问(http)，客户端上报数据(tcp)和 ssh（可选）
-* Nginx 反向代理的 gRPC 数据端口，配上证书做 tls 终结，然后 Argo 的隧道配置用 https 服务指向这个反向代理，启用http2回源，grpc(nezha)->h2(nginx)->argo->cf cdn edge->agent
-* 每天 0 时 0 分自动备份整个哪吒面板文件夹到指定的 github 私库，包括面板主题，面板设置，探针数据和隧道信息，鉴于内容十分重要，必须要放在私库
-* 数据更安全 --- Argo 隧道使用TLS加密通信，可以将应用程序流量安全地传输到 Cloudflare 网络，提高了应用程序的安全性和可靠性。此外，Argo Tunnel也可以防止IP泄露和DDoS攻击等网络威胁。
+* Nginx 反向代理的 gRPC 数据端口 --- 配上证书做 tls 终结，然后 Argo 的隧道配置用 https 服务指向这个反向代理，启用http2回源，grpc(nezha)->h2(nginx)->argo->cf cdn edge->agent
+* 每天自动备份 --- 每天 0 时 0 分自动备份整个哪吒面板文件夹到指定的 github 私库，包括面板主题，面板设置，探针数据和隧道信息，备份保留近 30 天数据；鉴于内容十分重要，必须要放在私库
+* 数据更安全 --- Argo 隧道使用TLS加密通信，可以将应用程序流量安全地传输到 Cloudflare 网络，提高了应用程序的安全性和可靠性。此外，Argo Tunnel也可以防止IP泄露和DDoS攻击等网络威胁
 
 <img width="1298" alt="image" src="https://user-images.githubusercontent.com/92626977/233363248-e2caa687-b513-448c-a92f-c870db0e4236.png">
 
@@ -94,10 +94,16 @@ Nezha server over Argo tunnel
 
 ## VPS 部署实例
 * 注意: ARGO_JSON= 后面需要有单引号，不能去掉
+* 如果 VPS 是 IPv6 only 的，请先安装 WARP IPv4 或者双栈: https://github.com/fscarmen/warp
+
+### docker 部署
+
+
 ```
 docker run -dit \
            --name nezha_dashboard \
            --restart always \
+           -v ./dashboard:/dashboard \
            -e GH_USER=<填 github 用户名> \
            -e GH_EMAIL=<填 github 邮箱> \
            -e GH_PAT=<填获取的> \
@@ -111,6 +117,31 @@ docker run -dit \
            -e SSH_PASSWORD=<填自定义的> \
            fscarmen/argo-nezha
 ```
+
+### docker-compose 部署
+```
+version: '3.8'
+services:
+    argo-nezha:
+        image: fscarmen/argo-nezha
+        container_name: nezha_dashboard
+        restart: always
+        volumes:
+            - ./dashboard:/dashboard
+        environment:
+            - GH_USER=<填 github 用户名>
+            - GH_EMAIL=<<填 github 邮箱>
+            - GH_PAT=<填获取的>
+            - GH_REPO=<填自定义的>
+            - GH_CLIENTID=<填获取的>
+            - GH_CLIENTSECRET=<填获取的>
+            - ARGO_JSON='<填获取的>'
+            - WEB_DOMAIN=<填自定义的>
+            - DATA_DOMAIN=<填自定义的>
+            - SSH_DOMAIN=<填自定义的>
+            - SSH_PASSWORD=<填自定义的>
+```
+
 
 ## 客户端接入
 通过gRPC传输，无需额外配置。使用面板给到的安装方式，举例
