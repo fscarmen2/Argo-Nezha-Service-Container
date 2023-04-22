@@ -106,33 +106,77 @@ http {
 }
 EOF
 
-# 生成定时备份数据库文件，定时任务，删除 30 天前的备份
+# 生成备份和恢复脚本
 if [[ -n "$GH_USER" && -n "$GH_EMAIL" && -n "$GH_REPO" && -n "$GH_PAT" ]]; then
+  # 生成定时备份数据库脚本，定时任务，删除 30 天前的备份
   cat > ./backup.sh << EOF
 #!/usr/bin/env bash
 
+[ -n "\$1" ] && WAY=Scheduled || WAY=Manualed
+
+# 克隆现有备份库
 cd /tmp
 git clone https://$GH_PAT@github.com/$GH_USER/$GH_REPO.git
-TIME=\$(date "+%Y-%m-%d-%H:%M:%S")
-tar czvf $GH_REPO/dashboard-\$TIME.tar.gz /dashboard
-cd $GH_REPO
-find ./ -name '*.gz' | sort | head -n -30 | xargs rm -f
-git config --global user.email $GH_EMAIL
-git config --global user.name $GH_USER
-git add .
-git commit -m "Dashboard backup by crontab at \$TIME ."
-git push
-cd ..
-rm -rf $GH_REPO
+
+# 停掉面板才能备份
+supervisorctl stop nezha
+sleep 10
+
+if [[ \$(supervisorctl status nezha) =~ STOPPED ]]; then
+  TIME=\$(date "+%Y-%m-%d-%H:%M:%S")
+  tar czvf $GH_REPO/dashboard-\$TIME.tar.gz /dashboard
+  cd $GH_REPO
+  find ./ -name '*.gz' | sort | head -n -30 | xargs rm -f
+  git config --global user.email $GH_EMAIL
+  git config --global user.name $GH_USER
+  git add .
+  git commit -m "\$WAY at \$TIME ."
+  git push
+  cd ..
+  rm -rf $GH_REPO
+fi
+
+# 重启面板
+supervisorctl start nezha
 EOF
 
-  # 生成定时任务，每天 0:00:00 备份一次，并重启 cron 服务
-  echo "0 0 * * * root bash /dashboard/backup.sh" >> /etc/crontab
+  # 生成还原数据脚本
+  cat > ./restore.sh << EOF
+#!/usr/bin/env bash
+
+[[ "\$1" =~ tar\.gz ]] && FILE="\$1"
+
+until [[ -n "\$FILE" || "\$i" = 5 ]]; do
+  [ -z "\$FILE" ] && read -rp ' Please input the backup file name (*.tar.gz): ' FILE
+  ((i++)) || true
+done
+
+if [ -n "\$FILE" ]; then
+  [[ "\$FILE" =~ http.*/.*tar.gz ]] && FILE=\$(awk -F '/' '{print \$NF}' <<< \$FILE)
+else
+  echo " The input has failed more than 5 times and the script exits. " && exit 1
+fi
+
+DOWNLOAD_URL=https://raw.githubusercontent.com/$GH_USER/$GH_REPO/main/\$FILE
+wget --header="Authorization: token $GH_PAT" --header='Accept: application/vnd.github.v3.raw' -O /tmp/backup.tar.gz "\$DOWNLOAD_URL"
+
+if [ -e /tmp/backup.tar.gz ]; then
+  supervisorctl stop nezha
+  tar xzvf /tmp/backup.tar.gz -C /
+  rm -f /tmp/backup.tar.gz
+  supervisorctl start nezha
+fi
+
+[[ \$(supervisorctl status nezha) =~ RUNNING ]] && echo " Done! " || echo " Fail! "
+EOF
+
+  # 生成定时任务，每天北京时间 4:00:00 备份一次，并重启 cron 服务
+  echo "0 4 * * * root bash /dashboard/backup.sh a" >> /etc/crontab
   service cron restart
 fi
 
 # 生成 supervisor 进程守护配置文件
-cat > /etc/supervisor/conf.d/supervisor.conf << EOF
+cat > /etc/supervisor/conf.d/damon.conf << EOF
 [supervisord]
 nodaemon=true
 logfile=/var/log/supervisord.log
@@ -161,4 +205,4 @@ stdout_logfile=/var/log/web_argo.out.log
 EOF
 
 # 运行 supervisor 进程守护
-supervisord -c /etc/supervisor/conf.d/supervisor.conf
+supervisord -c /etc/supervisor/supervisord.conf

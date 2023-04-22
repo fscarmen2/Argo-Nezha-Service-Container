@@ -13,6 +13,7 @@ Nezha server over Argo tunnel
 - [VPS 部署实例](README.md#VPS-部署实例)
 - [客户端接入](README.md#客户端接入)
 - [SSH 接入](README.md#ssh-接入)
+- [手动还完备份](README.md#手动还完备份)
 - [鸣谢下列作者的文章和项目](README.md#鸣谢下列作者的文章和项目)
 - [免责声明](README.md#免责声明)
 
@@ -24,7 +25,7 @@ Nezha server over Argo tunnel
 * IPv4 / v6 具备更高的灵活性 --- 传统哪吒需要处理服务端和客户端的 IPv4/v6 兼容性问题，还需要通过 warp 等工具来解决不对应的情况。然而，本项目可以完全不需要考虑这些问题，可以任意对接，更加方便和简便
 * 一条 Argo 隧道分流多个域名和协议 --- 建立一条内网穿透的 Argo 隧道，即可分流三个域名(hostname)和协议(protocal)，分别用于面板的访问(http)，客户端上报数据(tcp)和 ssh（可选）
 * Nginx 反向代理的 gRPC 数据端口 --- 配上证书做 tls 终结，然后 Argo 的隧道配置用 https 服务指向这个反向代理，启用http2回源，grpc(nezha)->h2(nginx)->argo->cf cdn edge->agent
-* 每天自动备份 --- 每天 0 时 0 分自动备份整个哪吒面板文件夹到指定的 github 私库，包括面板主题，面板设置，探针数据和隧道信息，备份保留近 30 天数据；鉴于内容十分重要，必须要放在私库
+* 每天自动备份 --- 北京时间每天 4 时 0 分自动备份整个哪吒面板文件夹到指定的 github 私库，包括面板主题，面板设置，探针数据和隧道信息，备份保留近 30 天数据；鉴于内容十分重要，必须要放在私库
 * 数据更安全 --- Argo 隧道使用TLS加密通信，可以将应用程序流量安全地传输到 Cloudflare 网络，提高了应用程序的安全性和可靠性。此外，Argo Tunnel也可以防止IP泄露和DDoS攻击等网络威胁
 
 <img width="1298" alt="image" src="https://user-images.githubusercontent.com/92626977/233363248-e2caa687-b513-448c-a92f-c870db0e4236.png">
@@ -85,6 +86,8 @@ Nezha server over Argo tunnel
 
 1.Koyeb
 
+* [![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=docker&name=nezha&ports=80;http;/&env[GH_USER]=&env[GH_CLIENTID]=&env[GH_CLIENTSECRET]=&env[GH_REPO]=&env[GH_EMAIL]=&env[GH_PAT]=&env[ARGO_JSON]=&env[DATA_DOMAIN]=&env[WEB_DOMAIN]=&env[SSH_DOMAIN]=&env[SSH_PASSWORD]=&image=docker.io/fscarmen/argo-nezha)
+
 <img width="927" alt="image" src="https://user-images.githubusercontent.com/92626977/231088411-fbac3e6e-a8a6-4661-bcf8-7c777aa8ffeb.png">
 <img width="750" alt="image" src="https://user-images.githubusercontent.com/92626977/231088973-7134aefd-4c80-4559-8e40-17c3be11d27d.png">
 <img width="754" alt="image" src="https://user-images.githubusercontent.com/92626977/233336491-6bb801af-257d-467d-aaf0-6dcb68a531ac.png">
@@ -95,9 +98,9 @@ Nezha server over Argo tunnel
 ## VPS 部署实例
 * 注意: ARGO_JSON= 后面需要有单引号，不能去掉
 * 如果 VPS 是 IPv6 only 的，请先安装 WARP IPv4 或者双栈: https://github.com/fscarmen/warp
+* 备份目录为当前路径的 dashboard 文件夹
 
 ### docker 部署
-
 
 ```
 docker run -dit \
@@ -163,12 +166,20 @@ curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install.sh -
 <img width="955" alt="image" src="https://user-images.githubusercontent.com/92626977/233350802-754624e0-8456-4353-8577-1f5385fb8723.png">
 
 
-## 
+## 手动还完备份
+* ssh 进入容器后运行，github 备份库里的 tar.gz 文件名，格式: dashboard-2023-04-22-21:42:10.tar.gz
+```
+bash /dashboard/restore.sh <文件名>
+```
+<img width="1209" alt="image" src="https://user-images.githubusercontent.com/92626977/233792709-fb37b79c-c755-4db1-96ec-1039309ff932.png">
+
+
 ## 鸣谢下列作者的文章和项目:
 * 热心的朝阳群众 Robin，讨论哪吒服务端与客户端的关系，从而诞生了此项目
 * 哪吒官网: https://nezha.wiki/ , TG 群: https://t.me/nezhamonitoring
 * 共穷国际老中医: http://solitud.es/
 * Akkia's Blog: https://blog.akkia.moe/
+* HiFeng's Blog: https://www.hicairo.com/
 * 用 Cloudflare Tunnel 进行内网穿透: https://blog.outv.im/2021/cloudflared-tunnel/
 
 ## 免责声明:
