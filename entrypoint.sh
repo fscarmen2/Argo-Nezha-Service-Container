@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 
+warning() { echo -e "\033[31m\033[01m$*\033[0m"; }  # 红色
+error() { echo -e "\033[31m\033[01m$*\033[0m" && exit 1; } # 红色
+info() { echo -e "\033[32m\033[01m$*\033[0m"; }   # 绿色
+hint() { echo -e "\033[33m\033[01m$*\033[0m"; }   # 黄色
+
 # 如参数不齐全，容器退出，另外处理某些环境变量填错后的处理
-[[ -z "$GH_USER" || -z "$GH_CLIENTID" || -z "$GH_CLIENTSECRET" || -z "$ARGO_JSON" || -z "$WEB_DOMAIN" || -z "$DATA_DOMAIN" ]] && echo " There are variables that are not set. " && exit 1
+[[ -z "$GH_USER" || -z "$GH_CLIENTID" || -z "$GH_CLIENTSECRET" || -z "$ARGO_JSON" || -z "$WEB_DOMAIN" || -z "$DATA_DOMAIN" ]] && error " There are variables that are not set. "
 grep -qv '"' <<< $ARGO_JSON && ARGO_JSON=$(sed 's@{@{"@g;s@[,:]@"\0"@g;s@}@"}@g' <<< $ARGO_JSON)  # 没有了"的处理
 [ -n "$GH_REPO" ] && grep -q '/' <<< $GH_REPO && GH_REPO=$(awk -F '/' '{print $NF}' <<< $GH_REPO)  # 填了项目全路径的处理
 
@@ -117,7 +122,12 @@ GH_USER=$GH_USER
 GH_EMAIL=$GH_EMAIL
 GH_REPO=$GH_REPO
 
-[ "\$(wget -qO- --header="Authorization: token \$GH_PAT" https://api.github.com/repos/\$GH_USER/\$GH_REPO | grep -m1 '"private":' | sed "s#.*:[ ]\+\(.*\),#\1#")" = false ] && echo " This is not a private repository and the script exits. " && exit 1
+warning() { echo -e "\033[31m\033[01m\$*\033[0m"; }  # 红色
+error() { echo -e "\033[31m\033[01m\$*\033[0m" && exit 1; } # 红色
+info() { echo -e "\033[32m\033[01m\$*\033[0m"; }   # 绿色
+hint() { echo -e "\033[33m\033[01m\$*\033[0m"; }   # 黄色
+
+[ "\$(wget -qO- --header="Authorization: token \$GH_PAT" https://api.github.com/repos/\$GH_USER/\$GH_REPO | grep -m1 '"private":' | sed "s#.*:[ ]\+\(.*\),#\1#")" = false ] && error "\n This is not a private repository and the script exits. \n"
 
 [ -n "\$1" ] && WAY=Scheduled || WAY=Manualed
 
@@ -158,8 +168,13 @@ GH_PAT=$GH_PAT
 GH_USER=$GH_USER
 GH_REPO=$GH_REPO
 
+warning() { echo -e "\033[31m\033[01m\$*\033[0m"; }  # 红色
+error() { echo -e "\033[31m\033[01m\$*\033[0m" && exit 1; } # 红色
+info() { echo -e "\033[32m\033[01m\$*\033[0m"; }   # 绿色
+hint() { echo -e "\033[33m\033[01m\$*\033[0m"; }   # 黄色
+
 if [ "\$1" = a ]; then
-  ONLINE="\$(wget -qO- --header="Authorization: token \$GH_PAT" --header='Accept: application/vnd.github.v3.raw' "https://raw.githubusercontent.com/\$GH_USER/\$GH_REPO/main/README.md" | sed "/^$/d" | head -n 1)"
+  ONLINE="\$(wget -qO- --header="Authorization: token \$GH_PAT" "https://raw.githubusercontent.com/\$GH_USER/\$GH_REPO/main/README.md" | sed "/^$/d" | head -n 1)"
   [ "\$ONLINE" = "\$(cat /dbfile)" ] && exit
   [[ "\$ONLINE" =~ tar\.gz$ && "\$ONLINE" != "\$(cat /dbfile)" ]] && FILE="\$ONLINE" && echo "\$FILE" > /dbfile || exit
 elif [[ "\$1" =~ tar\.gz$ ]]; then
@@ -174,7 +189,7 @@ done
 if [ -n "\$FILE" ]; then
   [[ "\$FILE" =~ http.*/.*tar.gz ]] && FILE=\$(awk -F '/' '{print \$NF}' <<< \$FILE)
 else
-  echo "\n The input has failed more than 5 times and the script exits. \n" && exit 1
+  error "\n The input has failed more than 5 times and the script exits. \n"
 fi
 
 DOWNLOAD_URL=https://raw.githubusercontent.com/\$GH_USER/\$GH_REPO/main/\$FILE
@@ -182,7 +197,7 @@ wget --header="Authorization: token \$GH_PAT" --header='Accept: application/vnd.
 
 if [ -e /tmp/backup.tar.gz ]; then
   supervisorctl stop nezha
-  tar xzvf /tmp/backup.tar.gz -C /
+  tar xzvf /tmp/backup.tar.gz --exclude='dashboard/*.sh' -C /
   rm -f /tmp/backup.tar.gz
   supervisorctl start nezha
 fi
