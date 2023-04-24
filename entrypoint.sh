@@ -117,6 +117,8 @@ GH_USER=$GH_USER
 GH_EMAIL=$GH_EMAIL
 GH_REPO=$GH_REPO
 
+[ "\$(wget -qO- --header="Authorization: token \$GH_PAT" https://api.github.com/repos/\$GH_USER/\$GH_REPO | grep -m1 '"private":' | sed "s#.*:[ ]\+\(.*\),#\1#")" = false ] && echo " This is not a private repository and the script exits. " && exit 1
+
 [ -n "\$1" ] && WAY=Scheduled || WAY=Manualed
 
 # 克隆现有备份库
@@ -172,7 +174,7 @@ done
 if [ -n "\$FILE" ]; then
   [[ "\$FILE" =~ http.*/.*tar.gz ]] && FILE=\$(awk -F '/' '{print \$NF}' <<< \$FILE)
 else
-  echo " The input has failed more than 5 times and the script exits. " && exit 1
+  echo "\n The input has failed more than 5 times and the script exits. \n" && exit 1
 fi
 
 DOWNLOAD_URL=https://raw.githubusercontent.com/\$GH_USER/\$GH_REPO/main/\$FILE
