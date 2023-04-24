@@ -2,7 +2,12 @@ name: "Build and push images"
 
 on:
   workflow_dispatch:
-  
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: 0 16 * * *
+
 jobs:
   Building:
       runs-on: ubuntu-latest

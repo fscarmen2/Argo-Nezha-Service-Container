@@ -13,6 +13,7 @@ Nezha server over Argo tunnel
 - [VPS 部署实例](README.md#VPS-部署实例)
 - [客户端接入](README.md#客户端接入)
 - [SSH 接入](README.md#ssh-接入)
+- [自动还完备份](README.md#自动还完备份)
 - [手动还完备份](README.md#手动还完备份)
 - [鸣谢下列作者的文章和项目](README.md#鸣谢下列作者的文章和项目)
 - [免责声明](README.md#免责声明)
@@ -26,6 +27,9 @@ Nezha server over Argo tunnel
 * 一条 Argo 隧道分流多个域名和协议 --- 建立一条内网穿透的 Argo 隧道，即可分流三个域名(hostname)和协议(protocal)，分别用于面板的访问(http)，客户端上报数据(tcp)和 ssh（可选）
 * Nginx 反向代理的 gRPC 数据端口 --- 配上证书做 tls 终结，然后 Argo 的隧道配置用 https 服务指向这个反向代理，启用http2回源，grpc(nezha)->h2(nginx)->argo->cf cdn edge->agent
 * 每天自动备份 --- 北京时间每天 4 时 0 分自动备份整个哪吒面板文件夹到指定的 github 私库，包括面板主题，面板设置，探针数据和隧道信息，备份保留近 30 天数据；鉴于内容十分重要，必须要放在私库
+* 手/自一体还完备份 --- 每分钟检测一次在线还原文件的内容，遇到有更新立刻还原
+* 无痛搬家 --- 在备份的同时把最新的备份文件名写到 github 私库的 README.md 里，需要搬到新的服务器，只要 github 私库相同，即可马上拉取最新备份数据
+* 默认内置本机探针 --- 能很方便的监控自身服务器信息
 * 数据更安全 --- Argo 隧道使用TLS加密通信，可以将应用程序流量安全地传输到 Cloudflare 网络，提高了应用程序的安全性和可靠性。此外，Argo Tunnel也可以防止IP泄露和DDoS攻击等网络威胁
 
 <img width="1298" alt="image" src="https://user-images.githubusercontent.com/92626977/233363248-e2caa687-b513-448c-a92f-c870db0e4236.png">
@@ -164,6 +168,14 @@ curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install.sh -
 <img width="834" alt="image" src="https://user-images.githubusercontent.com/92626977/233349393-cec79e11-346e-4a57-8357-8d153d75ee40.png">
 <img width="830" alt="image" src="https://user-images.githubusercontent.com/92626977/233350601-73de67f9-19ca-451f-b395-8721abbb3342.png">
 <img width="955" alt="image" src="https://user-images.githubusercontent.com/92626977/233350802-754624e0-8456-4353-8577-1f5385fb8723.png">
+
+
+## 自动还完备份
+* 把需要还完的文件名改到 github 备份库里的 `README.md`，定时服务会每分钟检测更新，并把上次同步的文件名记录在本地 `/dbfile` 处以与在线的文件内容作比对
+
+下图为以还原文件名为 `dashboard-2023-04-23-13:08:37.tar.gz` 作示例
+
+![image](https://user-images.githubusercontent.com/92626977/233822466-c24e94f6-ba8a-47c9-b77d-aa62a56cc929.png)
 
 
 ## 手动还完备份
