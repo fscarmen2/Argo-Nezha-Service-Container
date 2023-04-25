@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-warning() { echo -e "\033[31m\033[01m$*\033[0m"; }  # 红色
 error() { echo -e "\033[31m\033[01m$*\033[0m" && exit 1; } # 红色
 info() { echo -e "\033[32m\033[01m$*\033[0m"; }   # 绿色
 hint() { echo -e "\033[33m\033[01m$*\033[0m"; }   # 黄色
@@ -10,7 +9,7 @@ hint() { echo -e "\033[33m\033[01m$*\033[0m"; }   # 黄色
 grep -qv '"' <<< $ARGO_JSON && ARGO_JSON=$(sed 's@{@{"@g;s@[,:]@"\0"@g;s@}@"}@g' <<< $ARGO_JSON)  # 没有了"的处理
 [ -n "$GH_REPO" ] && grep -q '/' <<< $GH_REPO && GH_REPO=$(awk -F '/' '{print $NF}' <<< $GH_REPO)  # 填了项目全路径的处理
 
-echo -e "nameserver 127.0.0.11\nnameserver 8.8.4.4\nnameserver 223.5.5.5\n" > /etc/resolv.conf
+echo -e "nameserver 127.0.0.11\nnameserver 8.8.4.4\nnameserver 223.5.5.5\nnameserver 2001:4860:4860::8844\nnameserver 2400:3200::1\n" > /etc/resolv.conf
 
 # 根据参数生成哪吒服务端配置文件
 [ ! -d data ] && mkdir data
@@ -122,7 +121,6 @@ GH_USER=$GH_USER
 GH_EMAIL=$GH_EMAIL
 GH_REPO=$GH_REPO
 
-warning() { echo -e "\033[31m\033[01m\$*\033[0m"; }  # 红色
 error() { echo -e "\033[31m\033[01m\$*\033[0m" && exit 1; } # 红色
 info() { echo -e "\033[32m\033[01m\$*\033[0m"; }   # 绿色
 hint() { echo -e "\033[33m\033[01m\$*\033[0m"; }   # 黄色
@@ -136,14 +134,14 @@ cd /tmp
 git clone https://\$GH_PAT@github.com/\$GH_USER/\$GH_REPO.git
 
 # 停掉面板才能备份
-supervisorctl stop nezha
-sleep 5
+hint "\n \$(supervisorctl stop nezha) \n"
+sleep 3
 
 # github 备份并重启面板
 if [[ \$(supervisorctl status nezha) =~ STOPPED ]]; then
   TIME=\$(date "+%Y-%m-%d-%H:%M:%S")
   tar czvf \$GH_REPO/dashboard-\$TIME.tar.gz /dashboard
-  supervisorctl start nezha
+  hint "\n \$(supervisorctl start nezha) \n"
   cd \$GH_REPO
   echo "dashboard-\$TIME.tar.gz" > /dbfile
   echo "dashboard-\$TIME.tar.gz" > README.md
@@ -157,7 +155,7 @@ if [[ \$(supervisorctl status nezha) =~ STOPPED ]]; then
   rm -rf \$GH_REPO
 fi
 
-[[ \$(supervisorctl status nezha) =~ RUNNING ]] && echo -e "\n Done! \n" || echo -e "\n Fail! \n"
+[[ \$(supervisorctl status nezha) =~ RUNNING ]] && info "\n Done! \n" || error "\n Fail! \n"
 EOF
 
   # 生成还原数据脚本
@@ -168,7 +166,6 @@ GH_PAT=$GH_PAT
 GH_USER=$GH_USER
 GH_REPO=$GH_REPO
 
-warning() { echo -e "\033[31m\033[01m\$*\033[0m"; }  # 红色
 error() { echo -e "\033[31m\033[01m\$*\033[0m" && exit 1; } # 红色
 info() { echo -e "\033[32m\033[01m\$*\033[0m"; }   # 绿色
 hint() { echo -e "\033[33m\033[01m\$*\033[0m"; }   # 黄色
@@ -196,13 +193,13 @@ DOWNLOAD_URL=https://raw.githubusercontent.com/\$GH_USER/\$GH_REPO/main/\$FILE
 wget --header="Authorization: token \$GH_PAT" --header='Accept: application/vnd.github.v3.raw' -O /tmp/backup.tar.gz "\$DOWNLOAD_URL"
 
 if [ -e /tmp/backup.tar.gz ]; then
-  supervisorctl stop nezha
+  hint "\n \$(supervisorctl stop nezha) \n"
   tar xzvf /tmp/backup.tar.gz --exclude='dashboard/*.sh' -C /
   rm -f /tmp/backup.tar.gz
-  supervisorctl start nezha
+  hint "\n \$(supervisorctl start nezha) \n"
 fi
 
-[[ \$(supervisorctl status nezha) =~ RUNNING ]] && echo -e "\n Done! \n" || echo -e "\n Fail! \n"
+[[ \$(supervisorctl status nezha) =~ RUNNING ]] && info "\n Done! \n" || error "\n Fail! \n"
 EOF
 
   # 生成定时任务，每天北京时间 4:00:00 备份一次，并重启 cron 服务; 每分钟自动检测在线备份文件里的内容
@@ -246,6 +243,9 @@ autorestart=true
 stderr_logfile=/var/log/web_argo.err.log
 stdout_logfile=/var/log/web_argo.out.log
 EOF
+
+# 赋执行权给 sh  文件
+chmod +x /dashboard/*.sh
 
 # 运行 supervisor 进程守护
 supervisord -c /etc/supervisor/supervisord.conf

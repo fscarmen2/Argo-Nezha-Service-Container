@@ -153,7 +153,9 @@ services:
 ## 客户端接入
 通过gRPC传输，无需额外配置。使用面板给到的安装方式，举例
 ```
-curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install.sh -o nezha.sh && chmod +x nezha.sh && sudo ./nezha.sh install_agent data.seales.nom.za 443 eAxO9IF519fKFODlW0 --tls
+curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install.sh -o nezha.sh &&\
+chmod +x nezha.sh &&\
+sudo ./nezha.sh install_agent data.seales.nom.za 443 eAxO9IF519fKFODlW0 --tls
 ```
 
 
@@ -181,7 +183,7 @@ curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install.sh -
 ## 手动还完备份
 * ssh 进入容器后运行，github 备份库里的 tar.gz 文件名，格式: dashboard-2023-04-22-21:42:10.tar.gz
 ```
-bash /dashboard/restore.sh <文件名>
+/dashboard/restore.sh <文件名>
 ```
 <img width="1209" alt="image" src="https://user-images.githubusercontent.com/92626977/233792709-fb37b79c-c755-4db1-96ec-1039309ff932.png">
 
