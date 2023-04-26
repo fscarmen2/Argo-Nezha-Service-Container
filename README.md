@@ -13,8 +13,10 @@ Nezha server over Argo tunnel
 - [VPS 部署实例](README.md#VPS-部署实例)
 - [客户端接入](README.md#客户端接入)
 - [SSH 接入](README.md#ssh-接入)
-- [自动还完备份](README.md#自动还完备份)
-- [手动还完备份](README.md#手动还完备份)
+- [自动还原备份](README.md#自动还原备份)
+- [手动还原备份](README.md#手动还原备份)
+- [完美搬家](README.md#完美搬家)
+- [主体目录文件及说明](README.md#主体目录文件及说明)
 - [鸣谢下列作者的文章和项目](README.md#鸣谢下列作者的文章和项目)
 - [免责声明](README.md#免责声明)
 
@@ -27,8 +29,7 @@ Nezha server over Argo tunnel
 * 一条 Argo 隧道分流多个域名和协议 --- 建立一条内网穿透的 Argo 隧道，即可分流三个域名(hostname)和协议(protocal)，分别用于面板的访问(http)，客户端上报数据(tcp)和 ssh（可选）
 * Nginx 反向代理的 gRPC 数据端口 --- 配上证书做 tls 终结，然后 Argo 的隧道配置用 https 服务指向这个反向代理，启用http2回源，grpc(nezha)->h2(nginx)->argo->cf cdn edge->agent
 * 每天自动备份 --- 北京时间每天 4 时 0 分自动备份整个哪吒面板文件夹到指定的 github 私库，包括面板主题，面板设置，探针数据和隧道信息，备份保留近 30 天数据；鉴于内容十分重要，必须要放在私库
-* 手/自一体还完备份 --- 每分钟检测一次在线还原文件的内容，遇到有更新立刻还原
-* 无痛搬家 --- 在备份的同时把最新的备份文件名写到 github 私库的 README.md 里，需要搬到新的服务器，只要 github 私库相同，即可马上拉取最新备份数据
+* 手/自一体还原备份 --- 每分钟检测一次在线还原文件的内容，遇到有更新立刻还原
 * 默认内置本机探针 --- 能很方便的监控自身服务器信息
 * 数据更安全 --- Argo 隧道使用TLS加密通信，可以将应用程序流量安全地传输到 Cloudflare 网络，提高了应用程序的安全性和可靠性。此外，Argo Tunnel也可以防止IP泄露和DDoS攻击等网络威胁
 
@@ -153,9 +154,7 @@ services:
 ## 客户端接入
 通过gRPC传输，无需额外配置。使用面板给到的安装方式，举例
 ```
-curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install.sh -o nezha.sh &&\
-chmod +x nezha.sh &&\
-sudo ./nezha.sh install_agent data.seales.nom.za 443 eAxO9IF519fKFODlW0 --tls
+curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install.sh -o nezha.sh && chmod +x nezha.sh && sudo ./nezha.sh install_agent data.seales.nom.za 443 eAxO9IF519fKFODlW0 --tls
 ```
 
 
@@ -172,20 +171,49 @@ sudo ./nezha.sh install_agent data.seales.nom.za 443 eAxO9IF519fKFODlW0 --tls
 <img width="955" alt="image" src="https://user-images.githubusercontent.com/92626977/233350802-754624e0-8456-4353-8577-1f5385fb8723.png">
 
 
-## 自动还完备份
-* 把需要还完的文件名改到 github 备份库里的 `README.md`，定时服务会每分钟检测更新，并把上次同步的文件名记录在本地 `/dbfile` 处以与在线的文件内容作比对
+## 自动还原备份
+* 把需要还原的文件名改到 github 备份库里的 `README.md`，定时服务会每分钟检测更新，并把上次同步的文件名记录在本地 `/dbfile` 处以与在线的文件内容作比对
 
 下图为以还原文件名为 `dashboard-2023-04-23-13:08:37.tar.gz` 作示例
 
 ![image](https://user-images.githubusercontent.com/92626977/233822466-c24e94f6-ba8a-47c9-b77d-aa62a56cc929.png)
 
 
-## 手动还完备份
+## 手动还原备份
 * ssh 进入容器后运行，github 备份库里的 tar.gz 文件名，格式: dashboard-2023-04-22-21:42:10.tar.gz
 ```
-/dashboard/restore.sh <文件名>
+bash /dashboard/restore.sh <文件名>
 ```
 <img width="1209" alt="image" src="https://user-images.githubusercontent.com/92626977/233792709-fb37b79c-c755-4db1-96ec-1039309ff932.png">
+
+## 完美搬家
+* 备份原哪吒的 `/dashboard` 文件夹，压缩备份为 `dashboard.tar.gz` 文件
+```
+tar czvf dashboard.tar.gz /dashboard
+```
+* 下载文件并放入私库，这个私库名要与新哪吒 <GH_REPO> 完全一致，并把该库的 README.md 的内容编辑为 `dashboard.tar.gz`
+* 部署本项目新哪吒，完整填入变量即可。部署完成后，自动还原脚本会每分钟作检测，发现有新的内容即会自动还原，全程约 3 分钟
+
+
+## 主体目录文件及说明
+```
+.
+|-- dashboard
+|   |-- app                  # 哪吒面板主程序
+|   |-- argo.json            # Argo 隧道 json 文件，记录着使用隧道的信息
+|   |-- argo.yml             # Argo 隧道 yml 文件，用于在一同隧道下，根据不同域名来分流 web, gRPC 和 ssh 协议的作用
+|   |-- backup.sh            # 备份数据脚本
+|   |-- data
+|   |   |-- config.yaml      # 哪吒面板的配置，如 Github OAuth2 / gRPC 域名 / 端口 / 是否启用 TLS 等信息
+|   |   `-- sqlite.db        # SQLite 数据库文件，记录着面板设置的所有 severs 和 cron 等信息
+|   |-- entrypoint.sh        # 主脚本，容器运行后执行
+|   |-- nezha-agent          # 哪吒客户端，用于监控本地 localhost
+|   |-- nezha.csr            # SSL/TLS 证书签名请求
+|   |-- nezha.key            # SSL/TLS 证书的私钥信息
+|   |-- nezha.pem            # SSL/TLS 隐私增强邮件
+|   `-- restore.sh           # 还原备份脚本
+`-- dbfile                   # 记录最新的还原或备份文件名
+```
 
 
 ## 鸣谢下列作者的文章和项目:
