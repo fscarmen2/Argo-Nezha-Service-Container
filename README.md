@@ -89,9 +89,9 @@ Nezha server over Argo tunnel
   | SSH_DOMAIN     | 否 | ssh 用的 argo 域名 |
   | SSH_PASSWORD   | 否 | ssh 的密码，只有在设置 SSH_JSON 后才生效，默认值 password |
 
-1.Koyeb
+Koyeb
 
-* [![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=docker&name=nezha&ports=80;http;/&env[GH_USER]=&env[GH_CLIENTID]=&env[GH_CLIENTSECRET]=&env[GH_REPO]=&env[GH_EMAIL]=&env[GH_PAT]=&env[ARGO_JSON]=&env[DATA_DOMAIN]=&env[WEB_DOMAIN]=&env[SSH_DOMAIN]=&env[SSH_PASSWORD]=&image=docker.io/fscarmen/argo-nezha)
+[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=docker&name=nezha&ports=80;http;/&env[GH_USER]=&env[GH_CLIENTID]=&env[GH_CLIENTSECRET]=&env[GH_REPO]=&env[GH_EMAIL]=&env[GH_PAT]=&env[ARGO_JSON]=&env[DATA_DOMAIN]=&env[WEB_DOMAIN]=&env[SSH_DOMAIN]=&env[SSH_PASSWORD]=&image=docker.io/fscarmen/argo-nezha)
 
 <img width="927" alt="image" src="https://user-images.githubusercontent.com/92626977/231088411-fbac3e6e-a8a6-4661-bcf8-7c777aa8ffeb.png">
 <img width="750" alt="image" src="https://user-images.githubusercontent.com/92626977/231088973-7134aefd-4c80-4559-8e40-17c3be11d27d.png">
@@ -111,7 +111,6 @@ Nezha server over Argo tunnel
 docker run -dit \
            --name nezha_dashboard \
            --restart always \
-           -v ./dashboard:/dashboard \
            -e GH_USER=<填 github 用户名> \
            -e GH_EMAIL=<填 github 邮箱> \
            -e GH_PAT=<填获取的> \
@@ -134,8 +133,6 @@ services:
         image: fscarmen/argo-nezha
         container_name: nezha_dashboard
         restart: always
-        volumes:
-            - ./dashboard:/dashboard
         environment:
             - GH_USER=<填 github 用户名>
             - GH_EMAIL=<<填 github 邮箱>
