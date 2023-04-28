@@ -125,7 +125,7 @@ error() { echo -e "\033[31m\033[01m\$*\033[0m" && exit 1; } # 红色
 info() { echo -e "\033[32m\033[01m\$*\033[0m"; }   # 绿色
 hint() { echo -e "\033[33m\033[01m\$*\033[0m"; }   # 黄色
 
-[ "\$(wget -qO- --header="Authorization: token \$GH_PAT" https://api.github.com/repos/\$GH_USER/\$GH_REPO | grep -m1 '"private":' | sed "s#.*:[ ]\+\(.*\),#\1#")" = false ] && error "\n This is not a private repository and the script exits. \n"
+[ "\$(wget -qO- --header="Authorization: token \$GH_PAT" https://api.github.com/repos/\$GH_USER/\$GH_REPO | grep -oPm1 '(?<="private": ).*(?=,)')" != true ] && error "\n This is not exist nor a private repository and the script exits. \n"
 
 [ -n "\$1" ] && WAY=Scheduled || WAY=Manualed
 
