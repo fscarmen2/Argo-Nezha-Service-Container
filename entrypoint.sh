@@ -54,7 +54,7 @@ echo "$ARGO_JSON" > /dashboard/argo.json
 cat > /dashboard/argo.yml << EOF
 tunnel: $(cut -d '"' -f12 <<< "$ARGO_JSON")
 credentials-file: /dashboard/argo.json
-protocol: http2
+protocol: h2mux
 
 ingress:
   - hostname: $WEB_DOMAIN
