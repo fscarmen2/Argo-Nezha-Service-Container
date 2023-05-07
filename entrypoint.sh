@@ -203,8 +203,8 @@ fi
 EOF
 
   # 生成定时任务，每天北京时间 4:00:00 备份一次，并重启 cron 服务; 每分钟自动检测在线备份文件里的内容
-  echo "0 4 * * * root bash /dashboard/backup.sh a" >> /etc/crontab
-  echo "* * * * * root bash /dashboard/restore.sh a" >> /etc/crontab
+  grep -q '/dashboard/backup.sh' /etc/crontab || echo "0 4 * * * root bash /dashboard/backup.sh a" >> /etc/crontab
+  grep -q '/dashboard/restore.sh' /etc/crontab || echo "* * * * * root bash /dashboard/restore.sh a" >> /etc/crontab
   service cron restart
 fi
 
