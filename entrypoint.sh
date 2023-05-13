@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# 如不分离备份的 github 账户，默认与哪吒登陆的 github 账户一致
+GH_BACKUP_USER=${GH_BACKUP_USER:-$GH_USER}
+
 error() { echo -e "\033[31m\033[01m$*\033[0m" && exit 1; } # 红色
 info() { echo -e "\033[32m\033[01m$*\033[0m"; }   # 绿色
 hint() { echo -e "\033[33m\033[01m$*\033[0m"; }   # 黄色
@@ -111,13 +114,13 @@ http {
 EOF
 
 # 生成备份和恢复脚本
-if [[ -n "$GH_USER" && -n "$GH_EMAIL" && -n "$GH_REPO" && -n "$GH_PAT" ]]; then
+if [[ -n "$GH_BACKUP_USER" && -n "$GH_EMAIL" && -n "$GH_REPO" && -n "$GH_PAT" ]]; then
   # 生成定时备份数据库脚本，定时任务，删除 30 天前的备份
   cat > /dashboard/backup.sh << EOF
 #!/usr/bin/env bash
 
 GH_PAT=$GH_PAT
-GH_USER=$GH_USER
+GH_BACKUP_USER=$GH_BACKUP_USER
 GH_EMAIL=$GH_EMAIL
 GH_REPO=$GH_REPO
 
@@ -125,13 +128,13 @@ error() { echo -e "\033[31m\033[01m\$*\033[0m" && exit 1; } # 红色
 info() { echo -e "\033[32m\033[01m\$*\033[0m"; }   # 绿色
 hint() { echo -e "\033[33m\033[01m\$*\033[0m"; }   # 黄色
 
-[ "\$(wget -qO- --header="Authorization: token \$GH_PAT" https://api.github.com/repos/\$GH_USER/\$GH_REPO | grep -oPm1 '(?<="private": ).*(?=,)')" != true ] && error "\n This is not exist nor a private repository and the script exits. \n"
+[ "\$(wget -qO- --header="Authorization: token \$GH_PAT" https://api.github.com/repos/\$GH_BACKUP_USER/\$GH_REPO | grep -oPm1 '(?<="private": ).*(?=,)')" != true ] && error "\n This is not exist nor a private repository and the script exits. \n"
 
 [ -n "\$1" ] && WAY=Scheduled || WAY=Manualed
 
 # 克隆现有备份库
 cd /tmp
-git clone https://\$GH_PAT@github.com/\$GH_USER/\$GH_REPO.git
+git clone https://\$GH_PAT@github.com/\$GH_BACKUP_USER/\$GH_REPO.git
 
 # 停掉面板才能备份
 hint "\n \$(supervisorctl stop nezha) \n"
@@ -147,7 +150,7 @@ if [[ \$(supervisorctl status nezha) =~ STOPPED ]]; then
   echo "dashboard-\$TIME.tar.gz" > README.md
   find ./ -name '*.gz' | sort | head -n -30 | xargs rm -f
   git config --global user.email \$GH_EMAIL
-  git config --global user.name \$GH_USER
+  git config --global user.name \$GH_BACKUP_USER
   git add .
   git commit -m "\$WAY at \$TIME ."
   git push
@@ -163,7 +166,7 @@ EOF
 #!/usr/bin/env bash
 
 GH_PAT=$GH_PAT
-GH_USER=$GH_USER
+GH_BACKUP_USER=$GH_BACKUP_USER
 GH_REPO=$GH_REPO
 
 error() { echo -e "\033[31m\033[01m\$*\033[0m" && exit 1; } # 红色
@@ -171,7 +174,7 @@ info() { echo -e "\033[32m\033[01m\$*\033[0m"; }   # 绿色
 hint() { echo -e "\033[33m\033[01m\$*\033[0m"; }   # 黄色
 
 if [ "\$1" = a ]; then
-  ONLINE="\$(wget -qO- --header="Authorization: token \$GH_PAT" "https://raw.githubusercontent.com/\$GH_USER/\$GH_REPO/main/README.md" | sed "/^$/d" | head -n 1)"
+  ONLINE="\$(wget -qO- --header="Authorization: token \$GH_PAT" "https://raw.githubusercontent.com/\$GH_BACKUP_USER/\$GH_REPO/main/README.md" | sed "/^$/d" | head -n 1)"
   [ "\$ONLINE" = "\$(cat /dbfile)" ] && exit
   [[ "\$ONLINE" =~ tar\.gz$ && "\$ONLINE" != "\$(cat /dbfile)" ]] && FILE="\$ONLINE" && echo "\$FILE" > /dbfile || exit
 elif [[ "\$1" =~ tar\.gz$ ]]; then
@@ -189,7 +192,7 @@ else
   error "\n The input has failed more than 5 times and the script exits. \n"
 fi
 
-DOWNLOAD_URL=https://raw.githubusercontent.com/\$GH_USER/\$GH_REPO/main/\$FILE
+DOWNLOAD_URL=https://raw.githubusercontent.com/\$GH_BACKUP_USER/\$GH_REPO/main/\$FILE
 wget --header="Authorization: token \$GH_PAT" --header='Accept: application/vnd.github.v3.raw' -O /tmp/backup.tar.gz "\$DOWNLOAD_URL"
 
 if [ -e /tmp/backup.tar.gz ]; then
