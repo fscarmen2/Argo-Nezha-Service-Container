@@ -146,6 +146,7 @@ if [[ \$(supervisorctl status nezha) =~ STOPPED ]]; then
   tar czvf \$GH_REPO/dashboard-\$TIME.tar.gz /dashboard
   hint "\n \$(supervisorctl start nezha) \n"
   cd \$GH_REPO
+  [ -e ./.git/index.lock ] && rm -f ./.git/index.lock
   echo "dashboard-\$TIME.tar.gz" > /dbfile
   echo "dashboard-\$TIME.tar.gz" > README.md
   find ./ -name '*.gz' | sort | head -n -30 | xargs rm -f
