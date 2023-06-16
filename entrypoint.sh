@@ -134,7 +134,7 @@ hint() { echo -e "\033[33m\033[01m\$*\033[0m"; }   # 黄色
 
 # 克隆现有备份库
 cd /tmp
-git clone https://\$GH_PAT@github.com/\$GH_BACKUP_USER/\$GH_REPO.git
+git clone https://\$GH_PAT@github.com/\$GH_BACKUP_USER/\$GH_REPO.git --depth 1
 
 # 停掉面板才能备份
 hint "\n \$(supervisorctl stop nezha) \n"
