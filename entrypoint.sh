@@ -149,7 +149,7 @@ if [[ \$(supervisorctl status nezha) =~ STOPPED ]]; then
   [ -e ./.git/index.lock ] && rm -f ./.git/index.lock
   echo "dashboard-\$TIME.tar.gz" > /dbfile
   echo "dashboard-\$TIME.tar.gz" > README.md
-  find ./ -name '*.gz' | sort | head -n -8 | xargs rm -f
+  find ./ -name '*.gz' | sort | head -n -5 | xargs rm -f
   git config --global user.email \$GH_EMAIL
   git config --global user.name \$GH_BACKUP_USER
   git checkout --orphan tmp_work
