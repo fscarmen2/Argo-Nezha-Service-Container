@@ -18,8 +18,9 @@ RUN apt-get update &&\
     dpkg -i cloudflared.deb &&\
     rm -f nezha-agent.zip cloudflared.deb &&\
     touch /dbfile &&\
-    chmod +x entrypoint.sh && \
-    git config --global core.bigFileThreshold 1 && \
+    chmod +x entrypoint.sh 
+
+RUN git config --global core.bigFileThreshold 1k && \
     git config --global core.compression 0 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
