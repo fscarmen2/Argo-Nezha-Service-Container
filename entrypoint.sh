@@ -134,7 +134,7 @@ hint() { echo -e "\033[33m\033[01m\$*\033[0m"; }   # 黄色
 
 # 克隆现有备份库
 cd /tmp
-git clone https://\$GH_PAT@github.com/\$GH_BACKUP_USER/\$GH_REPO.git
+git clone https://\$GH_PAT@github.com/\$GH_BACKUP_USER/\$GH_REPO.git --depth 1
 
 # 停掉面板才能备份
 hint "\n \$(supervisorctl stop nezha) \n"
@@ -149,7 +149,7 @@ if [[ \$(supervisorctl status nezha) =~ STOPPED ]]; then
   [ -e ./.git/index.lock ] && rm -f ./.git/index.lock
   echo "dashboard-\$TIME.tar.gz" > /dbfile
   echo "dashboard-\$TIME.tar.gz" > README.md
-  find ./ -name '*.gz' | sort | head -n -8 | xargs rm -f
+  find ./ -name '*.gz' | sort | head -n -5 | xargs rm -f
   git config --global user.email \$GH_EMAIL
   git config --global user.name \$GH_BACKUP_USER
   git checkout --orphan tmp_work
