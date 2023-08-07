@@ -1,7 +1,8 @@
 # Argo-Nezha-Service-Container
 
-Nezha server over Argo tunnel 
 使用 Argo 隧道的哪吒服务端
+
+Documentation: [English version](https://github.com/fscarmen2/Argo-Nezha-Service-Container/blob/main/README_EN.md) | 中文版
 
 * * *
 
@@ -24,16 +25,16 @@ Nezha server over Argo tunnel
 
 ## 项目特点:
 * 适用范围更广 --- 只要能连通网络，就能安装哪吒服务端，如 Nas 虚拟机 , Container PaaS 等
-* Argo 隧道突破需要公网入口的限制 --- 传统的哪吒需要有两个，一个用于面板的访问，另一个用于客户端上报数据，本项目借用 Cloudflare Argo 隧道，使用内网穿透的办法
+* Argo 隧道突破需要公网入口的限制 --- 传统的哪吒需要有两个公网端口，一个用于面板的访问，另一个用于客户端上报数据，本项目借用 Cloudflare Argo 隧道，使用内网穿透的办法
 * IPv4 / v6 具备更高的灵活性 --- 传统哪吒需要处理服务端和客户端的 IPv4/v6 兼容性问题，还需要通过 warp 等工具来解决不对应的情况。然而，本项目可以完全不需要考虑这些问题，可以任意对接，更加方便和简便
 * 一条 Argo 隧道分流多个域名和协议 --- 建立一条内网穿透的 Argo 隧道，即可分流三个域名(hostname)和协议(protocal)，分别用于面板的访问(http)，客户端上报数据(tcp)和 ssh（可选）
 * Nginx 反向代理的 gRPC 数据端口 --- 配上证书做 tls 终结，然后 Argo 的隧道配置用 https 服务指向这个反向代理，启用http2回源，grpc(nezha)->h2(nginx)->argo->cf cdn edge->agent
-* 每天自动备份 --- 北京时间每天 4 时 0 分自动备份整个哪吒面板文件夹到指定的 github 私库，包括面板主题，面板设置，探针数据和隧道信息，备份保留近 30 天数据；鉴于内容十分重要，必须要放在私库
+* 每天自动备份 --- 北京时间每天 4 时 0 分自动备份整个哪吒面板文件夹到指定的 github 私库，包括面板主题，面板设置，探针数据和隧道信息，备份保留近 5 天数据；鉴于内容十分重要，必须要放在私库
 * 手/自一体还原备份 --- 每分钟检测一次在线还原文件的内容，遇到有更新立刻还原
 * 默认内置本机探针 --- 能很方便的监控自身服务器信息
 * 数据更安全 --- Argo 隧道使用TLS加密通信，可以将应用程序流量安全地传输到 Cloudflare 网络，提高了应用程序的安全性和可靠性。此外，Argo Tunnel也可以防止IP泄露和DDoS攻击等网络威胁
 
-<img width="1298" alt="image" src="https://user-images.githubusercontent.com/92626977/233363248-e2caa687-b513-448c-a92f-c870db0e4236.png">
+<img width="1298" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/6535a060-2138-4c72-9ffa-1175dc6f5c25.png">
 
 
 ## 准备需要用的变量
@@ -41,13 +42,13 @@ Nezha server over Argo tunnel
 
 <img width="1040" alt="image" src="https://user-images.githubusercontent.com/92626977/231084930-02e3c2de-c52b-420d-b39c-9f135d040b3b.png">
 
-* 到 Cloudflare 官方，在相应的域名 `DNS` 记录里加上客户端上报数据(tcp)和 ssh（可选）的域名，打开橙色云启用 CDN
+* 到 Cloudflare 官网，在相应的域名 `DNS` 记录里加上客户端上报数据(tcp)和 ssh（可选）的域名，打开橙色云启用 CDN
 
-<img width="1666" alt="image" src="https://user-images.githubusercontent.com/92626977/231087110-85ddab87-076b-45c9-97d1-c8b051dcb5b0.png">
+<img width="1651" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/d5efb33d-b2a3-484c-b058-346c3e229088">
 
-<img width="1627" alt="image" src="https://user-images.githubusercontent.com/92626977/231087714-e5a45eb9-bc47-4c38-8f5b-a4a9fb492d0d.png">
+<img width="1618" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/c44b638f-9984-47a7-a342-166549f6092e">
 
-* 到 Cloudflare 官方，选择使用的域名，打开 `网络` 选项将 `gRPC` 开关打开
+* 到 Cloudflare 官网，选择使用的域名，打开 `网络` 选项将 `gRPC` 开关打开
 
 <img width="1590" alt="image" src="https://user-images.githubusercontent.com/92626977/233138703-faab8596-a64a-40bb-afe6-52711489fbcf.png">
 
@@ -80,7 +81,7 @@ Nezha server over Argo tunnel
   | GH_USER        | 是 | github 的用户名，用于面板管理授权 |
   | GH_CLIENTID    | 是 | 在 github 上申请 |
   | GH_CLIENTSECRET| 是 | 在 github 上申请 |
-  | GH_BACKUP_USER   | 否 | 在 github 上备份哪吒服务端数据库的 github 用户名，不填则与面板管理授权的账户 GH_USER 一致  |
+  | GH_BACKUP_USER  | 否 | 在 github 上备份哪吒服务端数据库的 github 用户名，不填则与面板管理授权的账户 GH_USER 一致  |
   | GH_REPO        | 否 | 在 github 上备份哪吒服务端数据库文件的 github 库 |
   | GH_EMAIL       | 否 | github 的邮箱，用于备份的 git 推送到远程库 |
   | GH_PAT         | 否 | github 的 PAT |
@@ -221,6 +222,7 @@ tar czvf dashboard.tar.gz /dashboard
 * Akkia's Blog: https://blog.akkia.moe/
 * HiFeng's Blog: https://www.hicairo.com/
 * 用 Cloudflare Tunnel 进行内网穿透: https://blog.outv.im/2021/cloudflared-tunnel/
+
 
 ## 免责声明:
 * 本程序仅供学习了解, 非盈利目的，请于下载后 24 小时内删除, 不得用作任何商业用途, 文字、数据及图片均有所属版权, 如转载须注明来源。
