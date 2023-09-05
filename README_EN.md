@@ -30,6 +30,7 @@ Documentation: English version | [中文版](https://github.com/fscarmen2/Argo-N
 * One Argo tunnel for multiple domains and protocols --- Create an intranet-penetrating Argo tunnel for three domains (hostname) and protocols, which can be used for panel access (http), client reporting (tcp) and ssh (optional).
 * Nginx reverse proxy gRPC data port --- with a certificate for tls termination, then Argo's tunnel configuration with https service pointing to this reverse proxy, enable http2 back to the source, grpc(nezha)->h2(nginx)->argo->cf cdn edge->agent
 * Daily automatic backup --- every day at 04:00 BST, the entire Nezha panel folder is automatically backed up to a designated private github repository, including panel themes, panel settings, probe data and tunnel information, the backup retains nearly 5 days of data; the content is so important that it must be placed in the private repository.
+* Automatic daily panel update -- the latest official panel version is automatically detected every day at 4:00 BST, and updated when there is an upgrade.
 * Manual/automatic restore backup --- check the content of online restore file once a minute, and restore immediately when there is any update.
 * Default built-in local probes --- can easily monitor their own server information
 * More secure data --- Argo Tunnel uses TLS encrypted communication to securely transmit application traffic to the Cloudflare network, improving application security and reliability. In addition, Argo Tunnel protects against network threats such as IP leaks and DDoS attacks.
@@ -211,7 +212,8 @@ tar czvf dashboard.tar.gz /dashboard
 |   |-- nezha.key            # Private key information for SSL/TLS certificate.
 |   |-- nezha.pem            # SSL/TLS Privacy Enhancement Email
 |   `-- restore.sh           # Restore backup scripts
-`-- dbfile                   # Record the name of the latest restore or backup file
+|-- dbfile                   # Record the name of the latest restore or backup file
+`-- version                  # Record the current panel app version
 ```
 
 
@@ -222,6 +224,8 @@ tar czvf dashboard.tar.gz /dashboard
 * Akkia's Blog: https://blog.akkia.moe/
 * HiFeng's Blog: https://www.hicairo.com/
 * Intranet Penetration with Cloudflare Tunnel: https://blog.outv.im/2021/cloudflared-tunnel/
+* How to add your own Runner host to GitHub Actions: https://cloud.tencent.com/developer/article/1756690
+* github self-hosted runner addition and startup: https://blog.csdn.net/sinat_32188225/article/details/125978331
 
 
 ## Disclaimer

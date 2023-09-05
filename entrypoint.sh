@@ -140,10 +140,17 @@ git clone https://\$GH_PAT@github.com/\$GH_BACKUP_USER/\$GH_REPO.git --depth 1
 hint "\n \$(supervisorctl stop nezha) \n"
 sleep 3
 
-# github 备份并重启面板
+# 检查更新面板主程序 app，然后 github 备份数据库，最后重启面板
 if [[ \$(supervisorctl status nezha) =~ STOPPED ]]; then
+  [ -e /version ] && NOW=\$(cat /version)
+  LATEST=\$(wget -qO- https://raw.githubusercontent.com/fscarmen2/Argo-Nezha-Service-Container/main/app/README.md)
+  if [[ "\$LATEST" =~ ^v([0-9]{1,3}\.){2}[0-9]{1,3}\$ && "\$NOW" != "\$LATEST" ]]; then
+    hint "\n Renew dashboard app to \$LATEST \n"
+    wget -O /dashboard/app https://raw.githubusercontent.com/fscarmen2/Argo-Nezha-Service-Container/main/app/app-\$(arch)
+    echo "\$LATEST" > /version
+  fi
   TIME=\$(date "+%Y-%m-%d-%H:%M:%S")
-  tar czvf \$GH_REPO/dashboard-\$TIME.tar.gz /dashboard
+  tar czvf \$GH_REPO/dashboard-\$TIME.tar.gz --exclude='/dashboard/*.sh' --exclude='/dashboard/app' /dashboard
   hint "\n \$(supervisorctl start nezha) \n"
   cd \$GH_REPO
   [ -e ./.git/index.lock ] && rm -f ./.git/index.lock
@@ -199,7 +206,7 @@ wget --header="Authorization: token \$GH_PAT" --header='Accept: application/vnd.
 
 if [ -e /tmp/backup.tar.gz ]; then
   hint "\n \$(supervisorctl stop nezha) \n"
-  tar xzvf /tmp/backup.tar.gz --exclude='dashboard/*.sh' -C /
+  tar xzvf /tmp/backup.tar.gz --exclude='/dashboard/*.sh' --exclude='/dashboard/app' -C /
   rm -f /tmp/backup.tar.gz
   hint "\n \$(supervisorctl start nezha) \n"
 fi

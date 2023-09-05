@@ -30,6 +30,7 @@ Documentation: [English version](https://github.com/fscarmen2/Argo-Nezha-Service
 * 一条 Argo 隧道分流多个域名和协议 --- 建立一条内网穿透的 Argo 隧道，即可分流三个域名(hostname)和协议(protocal)，分别用于面板的访问(http)，客户端上报数据(tcp)和 ssh（可选）
 * Nginx 反向代理的 gRPC 数据端口 --- 配上证书做 tls 终结，然后 Argo 的隧道配置用 https 服务指向这个反向代理，启用http2回源，grpc(nezha)->h2(nginx)->argo->cf cdn edge->agent
 * 每天自动备份 --- 北京时间每天 4 时 0 分自动备份整个哪吒面板文件夹到指定的 github 私库，包括面板主题，面板设置，探针数据和隧道信息，备份保留近 5 天数据；鉴于内容十分重要，必须要放在私库
+* 每天自动更新面板 -- 北京时间每天 4 时 0 分自动检测最新的官方面板版本，有升级时自动更新
 * 手/自一体还原备份 --- 每分钟检测一次在线还原文件的内容，遇到有更新立刻还原
 * 默认内置本机探针 --- 能很方便的监控自身服务器信息
 * 数据更安全 --- Argo 隧道使用TLS加密通信，可以将应用程序流量安全地传输到 Cloudflare 网络，提高了应用程序的安全性和可靠性。此外，Argo Tunnel也可以防止IP泄露和DDoS攻击等网络威胁
@@ -211,7 +212,8 @@ tar czvf dashboard.tar.gz /dashboard
 |   |-- nezha.key            # SSL/TLS 证书的私钥信息
 |   |-- nezha.pem            # SSL/TLS 隐私增强邮件
 |   `-- restore.sh           # 还原备份脚本
-`-- dbfile                   # 记录最新的还原或备份文件名
+|-- dbfile                   # 记录最新的还原或备份文件名
+`-- version                  # 记录当前的面板 app 版本
 ```
 
 
@@ -222,6 +224,8 @@ tar czvf dashboard.tar.gz /dashboard
 * Akkia's Blog: https://blog.akkia.moe/
 * HiFeng's Blog: https://www.hicairo.com/
 * 用 Cloudflare Tunnel 进行内网穿透: https://blog.outv.im/2021/cloudflared-tunnel/
+* 如何给 GitHub Actions 添加自己的 Runner 主机: https://cloud.tencent.com/developer/article/1756690
+* github self-hosted runner 添加与启动: https://blog.csdn.net/sinat_32188225/article/details/125978331
 
 
 ## 免责声明:
