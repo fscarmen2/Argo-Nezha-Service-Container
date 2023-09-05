@@ -57,7 +57,7 @@ echo "$ARGO_JSON" > /dashboard/argo.json
 cat > /dashboard/argo.yml << EOF
 tunnel: $(cut -d '"' -f12 <<< "$ARGO_JSON")
 credentials-file: /dashboard/argo.json
-protocol: h2mux
+protocol: http2
 
 ingress:
   - hostname: $WEB_DOMAIN
@@ -109,6 +109,8 @@ http {
       grpc_socket_keepalive on;
       grpc_pass grpc://grpcservers;
     }
+    access_log  /dev/null;
+    error_log   /dev/null;
   }
 }
 EOF
@@ -224,36 +226,36 @@ fi
 cat > /etc/supervisor/conf.d/damon.conf << EOF
 [supervisord]
 nodaemon=true
-logfile=/var/log/supervisord.log
+logfile=/dev/null
 pidfile=/run/supervisord.pid
 
 [program:nginx]
 command=nginx -g "daemon off;"
 autostart=true
 autorestart=true
-stderr_logfile=/var/log/nginx.err.log
-stdout_logfile=/var/log/nginx.out.log
+stderr_logfile=/dev/null
+stdout_logfile=/dev/null
 
 [program:nezha]
 command=/dashboard/app
 autostart=true
 autorestart=true
-stderr_logfile=/var/log/nezha.err.log
-stdout_logfile=/var/log/nezha.out.log
+stderr_logfile=/dev/null
+stdout_logfile=/dev/null
 
 [program:agent]
 command=/dashboard/nezha-agent -s localhost:5555 -p abcdefghijklmnopqr
 autostart=true
 autorestart=true
-stderr_logfile=/var/log/agent.err.log
-stdout_logfile=/var/log/agent.out.log
+stderr_logfile=/dev/null
+stdout_logfile=/dev/null
 
 [program:argo]
 command=cloudflared tunnel --edge-ip-version auto --config /dashboard/argo.yml run
 autostart=true
 autorestart=true
-stderr_logfile=/var/log/web_argo.err.log
-stdout_logfile=/var/log/web_argo.out.log
+stderr_logfile=/dev/null
+stdout_logfile=/dev/null
 EOF
 
 # 赋执行权给 sh  文件
