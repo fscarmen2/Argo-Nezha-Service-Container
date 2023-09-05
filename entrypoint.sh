@@ -152,7 +152,7 @@ if [[ \$(supervisorctl status nezha) =~ STOPPED ]]; then
     echo "\$LATEST" > /version
   fi
   TIME=\$(date "+%Y-%m-%d-%H:%M:%S")
-  tar czvf \$GH_REPO/dashboard-\$TIME.tar.gz --exclude='/dashboard/*.sh' --exclude='/dashboard/app' /dashboard
+  tar czvf \$GH_REPO/dashboard-\$TIME.tar.gz --exclude='dashboard/*.sh' --exclude='dashboard/app' /dashboard
   hint "\n \$(supervisorctl start nezha) \n"
   cd \$GH_REPO
   [ -e ./.git/index.lock ] && rm -f ./.git/index.lock
@@ -208,7 +208,7 @@ wget --header="Authorization: token \$GH_PAT" --header='Accept: application/vnd.
 
 if [ -e /tmp/backup.tar.gz ]; then
   hint "\n \$(supervisorctl stop nezha) \n"
-  tar xzvf /tmp/backup.tar.gz --exclude='/dashboard/*.sh' --exclude='/dashboard/app' -C /
+  tar xzvf /tmp/backup.tar.gz -C /
   rm -f /tmp/backup.tar.gz
   hint "\n \$(supervisorctl start nezha) \n"
 fi
