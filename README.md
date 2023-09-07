@@ -9,6 +9,7 @@ Documentation: [English version](https://github.com/fscarmen2/Argo-Nezha-Service
 # 目录
 
 - [项目特点](README.md#项目特点)
+- [Argo 认证的获取方式: json 或 token](README.md#argo-认证的获取方式-json-或-token)
 - [准备需要用的变量](README.md#准备需要用的变量)
 - [PaaS 部署实例](README.md#PaaS-部署实例)
 - [VPS 部署实例](README.md#VPS-部署实例)
@@ -37,35 +38,46 @@ Documentation: [English version](https://github.com/fscarmen2/Argo-Nezha-Service
 
 <img width="1298" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/6535a060-2138-4c72-9ffa-1175dc6f5c25.png">
 
+## Argo 认证的获取方式: json 或 token
+Argo 隧道认证方式有 json 和 token，使用两个方式其中之一
 
-## 准备需要用的变量
-* 通过 Cloudflare Json 生成网轻松获取 Argo 隧道信息: https://fscarmen.cloudflare.now.cc
+### (方式 1 - Josn):
+#### 通过 Cloudflare Json 生成网轻松获取 Argo 隧道 json 信息: https://fscarmen.cloudflare.now.cc
 
-<img width="1040" alt="image" src="https://user-images.githubusercontent.com/92626977/231084930-02e3c2de-c52b-420d-b39c-9f135d040b3b.png">
+<img width="893" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/5b734a9d-b4fd-40ca-b7e6-5a1732a53175">
 
-* 到 Cloudflare 官网，在相应的域名 `DNS` 记录里加上客户端上报数据(tcp)和 ssh（可选）的域名，打开橙色云启用 CDN
+#### 到 Cloudflare 官网，在相应的域名 `DNS` 记录里加上客户端上报数据(tcp)和 ssh（可选）的域名，打开橙色云启用 CDN
 
 <img width="1651" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/d5efb33d-b2a3-484c-b058-346c3e229088">
-
 <img width="1618" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/c44b638f-9984-47a7-a342-166549f6092e">
 
+### (方式 2 - Token): 通过 Cloudflare 官网，手动生成 Argo 隧道 token 信息
+#### 到 cf 官网：https://dash.cloudflare.com/ ，进入 zero trust 里生成 token 隧道和信息。
+
+<img width="1672" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/0c467d8b-5fbc-4bde-ac8a-db70ed8798f0">
+<img width="1659" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/5aa4df19-f277-4582-8a4d-eef34a00085c">
+<img width="1470" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/ec06ec20-a68d-405c-b6de-cd4c52cbd8c0">
+<img width="1652" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/d0fba15c-f41b-4ee4-bea3-f0506d9b2d23">
+<img width="1670" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/2a28eab8-e434-4d06-85db-f2017b50f8de">
+<img width="1671" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/c6bcc511-e2f9-4616-bcca-47e1a8a25313">
+<img width="1670" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/7fbe3ef7-fb43-4925-9478-89ee08e44941">
+
+
+## 准备需要用的变量
 * 到 Cloudflare 官网，选择使用的域名，打开 `网络` 选项将 `gRPC` 开关打开
 
 <img width="1590" alt="image" src="https://user-images.githubusercontent.com/92626977/233138703-faab8596-a64a-40bb-afe6-52711489fbcf.png">
-
 
 * 获取 github 认证授权: https://github.com/settings/applications/new
 
 面板域名加上 `https://` 开头，回调地址再加上 `/oauth2/callback` 结尾
 
 <img width="916" alt="image" src="https://user-images.githubusercontent.com/92626977/231099071-b6676f2f-6c7b-4e2f-8411-c134143cab24.png">
-
 <img width="1122" alt="image" src="https://user-images.githubusercontent.com/92626977/231086319-1b625dc6-713b-4a62-80b1-cc5b2b7ef3ca.png">
 
 * 获取 github 的 PAT (Personal Access Token): https://github.com/settings/tokens/new
 
 <img width="1226" alt="image" src="https://user-images.githubusercontent.com/92626977/233346036-60819f98-c89a-4cef-b134-0d47c5cc333d.png">
-
 <img width="1148" alt="image" src="https://user-images.githubusercontent.com/92626977/233346508-273c422e-05c3-4c91-9fae-438202364787.png">
 
 * 创建 github 用于备份的私库: https://github.com/new
@@ -76,7 +88,7 @@ Documentation: [English version](https://github.com/fscarmen2/Argo-Nezha-Service
 ## PaaS 部署实例
 镜像 `fscarmen/argo-nezha:latest` ， 支持 amd64 和 arm64 架构
 
-用到的变量 
+用到的变量
   | 变量名        | 是否必须  | 备注 |
   | ------------ | ------   | ---- |
   | GH_USER        | 是 | github 的用户名，用于面板管理授权 |
@@ -86,7 +98,7 @@ Documentation: [English version](https://github.com/fscarmen2/Argo-Nezha-Service
   | GH_REPO        | 否 | 在 github 上备份哪吒服务端数据库文件的 github 库 |
   | GH_EMAIL       | 否 | github 的邮箱，用于备份的 git 推送到远程库 |
   | GH_PAT         | 否 | github 的 PAT |
-  | ARGO_JSON      | 是 | 从 https://fscarmen.cloudflare.now.cc 获取的 Argo Json |
+  | ARGO_AUTH      | 是 | Json: 从 https://fscarmen.cloudflare.now.cc 获取的 Argo Json<br> Token: 从 Cloudflare 官网获取 |
   | DATA_DOMAIN    | 是 | 客户端与服务端的通信 argo 域名 |
   | WEB_DOMAIN     | 是 | 面板 argo 域名 |
   | SSH_DOMAIN     | 否 | ssh 用的 argo 域名 |
@@ -94,10 +106,11 @@ Documentation: [English version](https://github.com/fscarmen2/Argo-Nezha-Service
 
 Koyeb
 
-[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=docker&name=nezha&ports=80;http;/&env[GH_USER]=&env[GH_CLIENTID]=&env[GH_CLIENTSECRET]=&env[GH_REPO]=&env[GH_EMAIL]=&env[GH_PAT]=&env[ARGO_JSON]=&env[DATA_DOMAIN]=&env[WEB_DOMAIN]=&env[SSH_DOMAIN]=&env[SSH_PASSWORD]=&image=docker.io/fscarmen/argo-nezha)
+[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=docker&name=nezha&ports=80;http;/&env[GH_USER]=&env[GH_CLIENTID]=&env[GH_CLIENTSECRET]=&env[GH_REPO]=&env[GH_EMAIL]=&env[GH_PAT]=&env[ARGO_AUTH]=&env[DATA_DOMAIN]=&env[WEB_DOMAIN]=&env[SSH_DOMAIN]=&env[SSH_PASSWORD]=&image=docker.io/fscarmen/argo-nezha)
 
 <img width="927" alt="image" src="https://user-images.githubusercontent.com/92626977/231088411-fbac3e6e-a8a6-4661-bcf8-7c777aa8ffeb.png">
 <img width="750" alt="image" src="https://user-images.githubusercontent.com/92626977/231088973-7134aefd-4c80-4559-8e40-17c3be11d27d.png">
+<img width="755" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/27a26b1b-6934-41a8-aca4-8a094c905850">
 <img width="754" alt="image" src="https://user-images.githubusercontent.com/92626977/233336491-6bb801af-257d-467d-aaf0-6dcb68a531ac.png">
 <img width="1187" alt="image" src="https://user-images.githubusercontent.com/92626977/231092893-c8f017a2-ee0e-4e28-bee3-7343158f0fa7.png">
 <img width="500" alt="image" src="https://user-images.githubusercontent.com/92626977/231094144-df6715bc-c611-47ce-a529-03c43f38102e.png">
@@ -120,7 +133,7 @@ docker run -dit \
            -e GH_REPO=<填自定义的> \
            -e GH_CLIENTID=<填获取的>  \
            -e GH_CLIENTSECRET=<填获取的> \
-           -e ARGO_JSON='<填获取的>' \
+           -e ARGO_AUTH='<填获取的 Argo json 或者 token>' \
            -e WEB_DOMAIN=<填自定义的> \
            -e DATA_DOMAIN=<填自定义的> \
            -e SSH_DOMAIN=<填自定义的> \
@@ -143,7 +156,7 @@ services:
             - GH_REPO=<填自定义的>
             - GH_CLIENTID=<填获取的>
             - GH_CLIENTSECRET=<填获取的>
-            - ARGO_JSON='<填获取的>'
+            - ARGO_AUTH='<填获取的 Argo json 或者 token>'
             - WEB_DOMAIN=<填自定义的>
             - DATA_DOMAIN=<填自定义的>
             - SSH_DOMAIN=<填自定义的>

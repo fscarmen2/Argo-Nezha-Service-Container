@@ -8,9 +8,9 @@ info() { echo -e "\033[32m\033[01m$*\033[0m"; }   # 绿色
 hint() { echo -e "\033[33m\033[01m$*\033[0m"; }   # 黄色
 
 # 如参数不齐全，容器退出，另外处理某些环境变量填错后的处理
-[[ -z "$GH_USER" || -z "$GH_CLIENTID" || -z "$GH_CLIENTSECRET" || -z "$ARGO_JSON" || -z "$WEB_DOMAIN" || -z "$DATA_DOMAIN" ]] && error " There are variables that are not set. "
-grep -qv '"' <<< $ARGO_JSON && ARGO_JSON=$(sed 's@{@{"@g;s@[,:]@"\0"@g;s@}@"}@g' <<< $ARGO_JSON)  # 没有了"的处理
-[ -n "$GH_REPO" ] && grep -q '/' <<< $GH_REPO && GH_REPO=$(awk -F '/' '{print $NF}' <<< $GH_REPO)  # 填了项目全路径的处理
+[[ -z "$GH_USER" || -z "$GH_CLIENTID" || -z "$GH_CLIENTSECRET" || -z "$ARGO_AUTH" || -z "$WEB_DOMAIN" || -z "$DATA_DOMAIN" ]] && error " There are variables that are not set. "
+[[ "$ARGO_AUTH" =~ TunnelSecret ]] && grep -qv '"' <<< "$ARGO_AUTH" && ARGO_AUTH=$(sed 's@{@{"@g;s@[,:]@"\0"@g;s@}@"}@g' <<< "$ARGO_AUTH")  # Json 时，没有了"的处理
+[ -n "$GH_REPO" ] && grep -q '/' <<< "$GH_REPO" && GH_REPO=$(awk -F '/' '{print $NF}' <<< "$GH_REPO")  # 填了项目全路径的处理
 
 echo -e "nameserver 127.0.0.11\nnameserver 8.8.4.4\nnameserver 223.5.5.5\nnameserver 2001:4860:4860::8844\nnameserver 2400:3200::1\n" > /etc/resolv.conf
 
@@ -49,13 +49,17 @@ if [ -n "$SSH_DOMAIN" ]; then
   service ssh restart
 fi
 
-# 根据 Json 生成相应隧道
-echo "$ARGO_JSON" > /dashboard/argo.json
+# 判断 ARGO_AUTH 为 json 还是 token
+# 如为 json 将生成 argo.json 和 argo.yml 文件
+if [[ "$ARGO_AUTH" =~ TunnelSecret ]]; then
+  ARGO_RUN='cloudflared tunnel --edge-ip-version auto --config /dashboard/argo.yml run'
 
-[ -z "$SSH_DOMAIN" ] && SSH_DISABLE=#
+  echo "$ARGO_AUTH" > /dashboard/argo.json
 
-cat > /dashboard/argo.yml << EOF
-tunnel: $(cut -d '"' -f12 <<< "$ARGO_JSON")
+  [ -z "$SSH_DOMAIN" ] && SSH_DISABLE=#
+
+  cat > /dashboard/argo.yml << EOF
+tunnel: $(cut -d '"' -f12 <<< "$ARGO_AUTH")
 credentials-file: /dashboard/argo.json
 protocol: http2
 
@@ -70,6 +74,11 @@ $SSH_DISABLE    service: ssh://localhost:22
       noTLSVerify: true
   - service: http_status:404
 EOF
+
+# 如为 token 时
+elif [[ "$ARGO_AUTH" =~ ^ey[A-Z0-9a-z=]{120,250}$ ]]; then
+  ARGO_RUN="cloudflared tunnel --edge-ip-version auto --protocol http2 run --token ${ARGO_AUTH}"
+fi
 
 # 生成 nginx 配置文件 and 自签署SSL证书
 openssl genrsa -out /dashboard/nezha.key 2048
@@ -251,7 +260,7 @@ stderr_logfile=/dev/null
 stdout_logfile=/dev/null
 
 [program:argo]
-command=cloudflared tunnel --edge-ip-version auto --config /dashboard/argo.yml run
+command=$ARGO_RUN
 autostart=true
 autorestart=true
 stderr_logfile=/dev/null
