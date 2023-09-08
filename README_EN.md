@@ -239,6 +239,7 @@ tar czvf dashboard.tar.gz /dashboard
 * Intranet Penetration with Cloudflare Tunnel: https://blog.outv.im/2021/cloudflared-tunnel/
 * How to add your own Runner host to GitHub Actions: https://cloud.tencent.com/developer/article/1756690
 * github self-hosted runner addition and startup: https://blog.csdn.net/sinat_32188225/article/details/125978331
+* How to export a file from a Docker image: https://www.pkslow.com/archives/extract-files-from-docker-image
 
 
 ## Disclaimer

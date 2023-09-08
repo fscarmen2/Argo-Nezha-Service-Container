@@ -239,6 +239,7 @@ tar czvf dashboard.tar.gz /dashboard
 * 用 Cloudflare Tunnel 进行内网穿透: https://blog.outv.im/2021/cloudflared-tunnel/
 * 如何给 GitHub Actions 添加自己的 Runner 主机: https://cloud.tencent.com/developer/article/1756690
 * github self-hosted runner 添加与启动: https://blog.csdn.net/sinat_32188225/article/details/125978331
+* 如何从Docker镜像中导出文件: https://www.pkslow.com/archives/extract-files-from-docker-image
 
 
 ## 免责声明:

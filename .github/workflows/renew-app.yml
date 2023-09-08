@@ -1,0 +1,54 @@
+name: "Renew nezha dash app"
+
+on:
+  workflow_dispatch:
+#  push:
+#    branches:
+#      - main
+  schedule:
+    - cron: 0 16 * * *
+
+jobs:
+  fetch-app-from-images:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Check and fetch app
+        run: |
+          [ -e app/README.md ] && NOW=$(cat app/README.md)
+          LATEST=$(sudo wget -qO- https://raw.githubusercontent.com/naiba/nezha/master/README.md | grep -oP '(?<=master&label=Dash%20)[^&]*')
+          if [ "$NOW" != "$LATEST" ]; then
+            ARCH=("x86_64" "aarch64")
+            PLATFORM=("amd64" "arm64")
+            [ ! -d app ] && mkdir -p app
+            for ((i=0; i<${#ARCH[*]}; i++)); do
+              unset DIR
+              mkdir -p ${PLATFORM[i]}_dir
+              [ -e app/app-${ARCH[i]} ] && sudo rm -f app/app-${ARCH[i]}
+              TAG[i]=$(wget -qO- https://github.com/naiba/nezha/pkgs/container/nezha-dashboard | grep -A 5 "linux/${PLATFORM[i]}" | grep -oP '(?<=ghcr.io/naiba/nezha-dashboard:)[^"]*')
+              sudo docker pull ghcr.io/naiba/nezha-dashboard:${TAG[i]}
+              sudo docker save -o ${PLATFORM[i]}_dir/${PLATFORM[i]}.tar ghcr.io/naiba/nezha-dashboard:${TAG[i]}
+              sudo tar xvf ${PLATFORM[i]}_dir/${PLATFORM[i]}.tar -C ${PLATFORM[i]}_dir/
+              DIR=($(ls -d ${PLATFORM[i]}_dir/*/layer.tar))
+              TAR_FILE[i]=$(for j in ${DIR[@]}; do tar -tf $j | grep -q 'dashboard/app' && echo $j && break; done)
+              sudo tar xvf ${TAR_FILE[i]} -C ${PLATFORM[i]}_dir --strip-components=1 dashboard/app
+              sudo mv ${PLATFORM[i]}_dir/app app/app-${ARCH[i]}
+              sudo rm -rf ${PLATFORM[i]}_dir
+            done
+            ls app/app* | xargs md5sum
+            DATE=$(date "+%Y/%m/%d")
+            echo "VERSION=$LATEST" >> $GITHUB_ENV
+            echo "DATE=$(date "+%Y/%m/%d")" >> $GITHUB_ENV
+            echo "$LATEST" > app/README.md
+          fi
+
+      - name: Upload to repository
+        uses: stefanzweifel/git-auto-commit-action@v4.16.0
+        if: ${{ env.VERSION != '' }}
+        with:
+          commit_message: Sync app ${{ env.VERSION }} by Github Actions, ${{ env.DATE }}
