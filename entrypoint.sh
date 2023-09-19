@@ -143,13 +143,13 @@ hint() { echo -e "\033[33m\033[01m\$*\033[0m"; }   # 黄色
 
 [ -n "\$1" ] && WAY=Scheduled || WAY=Manualed
 
+# 停掉面板才能备份
+hint "\n \$(supervisorctl stop all) \n"
+sleep 3
+
 # 克隆现有备份库
 cd /tmp
-git clone https://\$GH_PAT@github.com/\$GH_BACKUP_USER/\$GH_REPO.git --depth 1
-
-# 停掉面板才能备份
-hint "\n \$(supervisorctl stop nezha) \n"
-sleep 3
+git clone https://\$GH_PAT@github.com/\$GH_BACKUP_USER/\$GH_REPO.git --depth 1 --quiet
 
 # 检查更新面板主程序 app，然后 github 备份数据库，最后重启面板
 if [[ \$(supervisorctl status nezha) =~ STOPPED ]]; then
@@ -161,8 +161,7 @@ if [[ \$(supervisorctl status nezha) =~ STOPPED ]]; then
     echo "\$LATEST" > /version
   fi
   TIME=\$(date "+%Y-%m-%d-%H:%M:%S")
-  tar czvf \$GH_REPO/dashboard-\$TIME.tar.gz --exclude='dashboard/*.sh' --exclude='dashboard/app' /dashboard
-  hint "\n \$(supervisorctl start nezha) \n"
+  tar czvf \$GH_REPO/dashboard-\$TIME.tar.gz --exclude='dashboard/*.sh' --exclude='dashboard/app' --exclude='dashboard/nezha-agent' /dashboard
   cd \$GH_REPO
   [ -e ./.git/index.lock ] && rm -f ./.git/index.lock
   echo "dashboard-\$TIME.tar.gz" > /dbfile
@@ -173,12 +172,13 @@ if [[ \$(supervisorctl status nezha) =~ STOPPED ]]; then
   git checkout --orphan tmp_work
   git add .
   git commit -m "\$WAY at \$TIME ."
-  git push -f -u  origin  HEAD:main
+  git push -f -u origin HEAD:main --quiet
   cd ..
   rm -rf \$GH_REPO
+  hint "\n \$(supervisorctl start all) \n"; sleep 120
 fi
 
-[[ \$(supervisorctl status nezha) =~ RUNNING ]] && info "\n Done! \n" || error "\n Fail! \n"
+[[ \$(supervisorctl status agent) =~ RUNNING && \$(supervisorctl status argo) =~ RUNNING && \$(supervisorctl status nezha) =~ RUNNING && \$(supervisorctl status nginx) =~ RUNNING ]] && info "\n Done! \n" || error "\n Fail! \n"
 EOF
 
   # 生成还原数据脚本
@@ -216,13 +216,17 @@ DOWNLOAD_URL=https://raw.githubusercontent.com/\$GH_BACKUP_USER/\$GH_REPO/main/\
 wget --header="Authorization: token \$GH_PAT" --header='Accept: application/vnd.github.v3.raw' -O /tmp/backup.tar.gz "\$DOWNLOAD_URL"
 
 if [ -e /tmp/backup.tar.gz ]; then
-  hint "\n \$(supervisorctl stop nezha) \n"
-  tar xzvf /tmp/backup.tar.gz -C /
+  hint "\n \$(supervisorctl stop all) \n"
+  FILE_LIST=\$(tar -tzf /tmp/backup.tar.gz)
+  grep -q "dashboard/app" <<< "\$FILE_LIST" && EXCLUDE[0]="--exclude='dashboard/app'"
+  grep -q "dashboard/*\.sh" <<< "\$FILE_LIST" && EXCLUDE[1]="--exclude='dashboard/*.sh'"
+  grep -q "dashboard/nezha-agent" <<< "\$FILE_LIST" && EXCLUDE[2]="--exclude='dashboard/nezha-agent'"
+  tar xzvf /tmp/backup.tar.gz \${EXCLUDE[*]} -C /
   rm -f /tmp/backup.tar.gz
-  hint "\n \$(supervisorctl start nezha) \n"
+  hint "\n \$(supervisorctl start all) \n"; sleep 120
 fi
 
-[[ \$(supervisorctl status nezha) =~ RUNNING ]] && info "\n Done! \n" || error "\n Fail! \n"
+[[ \$(supervisorctl status agent) =~ RUNNING && \$(supervisorctl status argo) =~ RUNNING && \$(supervisorctl status nezha) =~ RUNNING && \$(supervisorctl status nginx) =~ RUNNING ]] && info "\n Done! \n" || error "\n Fail! \n"
 EOF
 
   # 生成定时任务，每天北京时间 4:00:00 备份一次，并重启 cron 服务; 每分钟自动检测在线备份文件里的内容
