@@ -144,7 +144,7 @@ hint() { echo -e "\033[33m\033[01m\$*\033[0m"; }   # 黄色
 [ -n "\$1" ] && WAY=Scheduled || WAY=Manualed
 
 # 停掉面板才能备份
-hint "\n \$(supervisorctl stop all) \n"
+hint "\n\$(supervisorctl stop agent nezha nginx)\n"
 sleep 3
 
 # 克隆现有备份库
@@ -175,10 +175,10 @@ if [[ \$(supervisorctl status nezha) =~ STOPPED ]]; then
   git push -f -u origin HEAD:main --quiet
   cd ..
   rm -rf \$GH_REPO
-  hint "\n \$(supervisorctl start all) \n"; sleep 120
+  hint "\n\$(supervisorctl start agent nezha nginx)\n"; sleep 30
 fi
 
-[[ \$(supervisorctl status agent) =~ RUNNING && \$(supervisorctl status argo) =~ RUNNING && \$(supervisorctl status nezha) =~ RUNNING && \$(supervisorctl status nginx) =~ RUNNING ]] && info "\n Done! \n" || error "\n Fail! \n"
+[ \$(supervisorctl status all | grep -c "RUNNING") = \$(grep -c '\[program:.*\]' /etc/supervisor/conf.d/damon.conf) ] && info "\n Done! \n" || error "\n Fail! \n"
 EOF
 
   # 生成还原数据脚本
@@ -216,17 +216,17 @@ DOWNLOAD_URL=https://raw.githubusercontent.com/\$GH_BACKUP_USER/\$GH_REPO/main/\
 wget --header="Authorization: token \$GH_PAT" --header='Accept: application/vnd.github.v3.raw' -O /tmp/backup.tar.gz "\$DOWNLOAD_URL"
 
 if [ -e /tmp/backup.tar.gz ]; then
-  hint "\n \$(supervisorctl stop all) \n"
+  hint "\n\$(supervisorctl stop agent nezha nginx)\n"
   FILE_LIST=\$(tar -tzf /tmp/backup.tar.gz)
-  grep -q "dashboard/app" <<< "\$FILE_LIST" && EXCLUDE[0]="--exclude='dashboard/app'"
-  grep -q "dashboard/*\.sh" <<< "\$FILE_LIST" && EXCLUDE[1]="--exclude='dashboard/*.sh'"
+  grep -q "dashboard/app" <<< "\$FILE_LIST" && EXCLUDE[0]=--exclude='dashboard/app'
+  grep -q "dashboard/.*\.sh" <<< "\$FILE_LIST" && EXCLUDE[1]=--exclude='dashboard/*.sh'
   grep -q "dashboard/nezha-agent" <<< "\$FILE_LIST" && EXCLUDE[2]="--exclude='dashboard/nezha-agent'"
   tar xzvf /tmp/backup.tar.gz \${EXCLUDE[*]} -C /
   rm -f /tmp/backup.tar.gz
-  hint "\n \$(supervisorctl start all) \n"; sleep 120
+  hint "\n\$(supervisorctl start agent nezha nginx)\n"; sleep 30
 fi
 
-[[ \$(supervisorctl status agent) =~ RUNNING && \$(supervisorctl status argo) =~ RUNNING && \$(supervisorctl status nezha) =~ RUNNING && \$(supervisorctl status nginx) =~ RUNNING ]] && info "\n Done! \n" || error "\n Fail! \n"
+[ \$(supervisorctl status all | grep -c "RUNNING") = \$(grep -c '\[program:.*\]' /etc/supervisor/conf.d/damon.conf) ] && info "\n Done! \n" || error "\n Fail! \n"
 EOF
 
   # 生成定时任务，每天北京时间 4:00:00 备份一次，并重启 cron 服务; 每分钟自动检测在线备份文件里的内容
