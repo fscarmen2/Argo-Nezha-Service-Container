@@ -1,0 +1,25 @@
+project_name: Build grpcwebproxy
+before:
+  hooks:
+    - go mod tidy -v
+builds:
+  - env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.arch={{.Arch}}
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    gomips:
+      - softfloat
+    main: ./go/grpcwebproxy/
+    binary: grpcwebproxy
+universal_binaries:
+  - name_template: "grpcwebproxy"
+    replace: false
+archives:
+  - name_template: "grpcwebproxy_{{ .Os }}_{{ .Arch }}"
+    files:
+      - none*

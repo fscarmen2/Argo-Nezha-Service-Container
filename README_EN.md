@@ -29,14 +29,14 @@ Documentation: English version | [中文版](https://github.com/fscarmen2/Argo-N
 * Argo tunnel breaks through the restriction of requiring a public network portal --- The traditional Nezha requires two public network ports, one for panel visiting and the other for client reporting, this project uses Cloudflare Argo tunnels and uses intranet tunneling.
 * IPv4 / v6 with higher flexibility --- The traditional Nezha needs to deal with IPv4/v6 compatibility between server and client, and also needs to resolve mismatches through tools such as warp. However, this project does not need to consider these issues at all, and can be docked arbitrarily, which is much more convenient and easy!
 * One Argo tunnel for multiple domains and protocols --- Create an intranet-penetrating Argo tunnel for three domains (hostname) and protocols, which can be used for panel access (http), client reporting (tcp) and ssh (optional).
-* Nginx reverse proxy gRPC data port --- with a certificate for tls termination, then Argo's tunnel configuration with https service pointing to this reverse proxy, enable http2 back to the source, grpc(nezha)->h2(nginx)->argo->cf cdn edge->agent
+* GrpcWebProxy reverse proxy gRPC data port --- with a certificate for tls termination, then Argo's tunnel configuration with https service pointing to this reverse proxy, enable http2 back to the source, grpc(nezha)->GrpcWebProxy->h2(argo)->cf cdn edge->agent
 * Daily automatic backup --- every day at 04:00 BST, the entire Nezha panel folder is automatically backed up to a designated private github repository, including panel themes, panel settings, probe data and tunnel information, the backup retains nearly 5 days of data; the content is so important that it must be placed in the private repository.
 * Automatic daily panel update -- the latest official panel version is automatically detected every day at 4:00 BST, and updated when there is an upgrade.
 * Manual/automatic restore backup --- check the content of online restore file once a minute, and restore immediately when there is any update.
 * Default built-in local probes --- can easily monitor their own server information
 * More secure data --- Argo Tunnel uses TLS encrypted communication to securely transmit application traffic to the Cloudflare network, improving application security and reliability. In addition, Argo Tunnel protects against network threats such as IP leaks and DDoS attacks.
 
-<img width="1298" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/6535a060-2138-4c72-9ffa-1175dc6f5c25.png">
+<img width="1298" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/a1192434-fb60-4944-b6d0-de4235323e3d">
 
 
 ## How to get Argo authentication: json or token
@@ -59,9 +59,10 @@ The Argo Tunnel authentication methods are json and token, use one of the two me
 <img width="1652" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/89b2b758-e550-413d-aa3e-216d226da7f4">
 <img width="1463" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/9f77e26b-a25d-4ff0-8425-1085708e19c3">
 <img width="1652" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/d0fba15c-f41b-4ee4-bea3-f0506d9b2d23">
-<img width="1670" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/2a28eab8-e434-4d06-85db-f2017b50f8de">
+<img width="1394" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/ab526fae-7a71-4a7c-9aee-a3bfe4774958">
 <img width="1671" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/c6bcc511-e2f9-4616-bcca-47e1a8a25313">
 <img width="1670" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/7fbe3ef7-fb43-4925-9478-89ee08e44941">
+
 
 ## Prepare variables to be used
 * Visit the Cloudflare website, select the domain name you want to use, and turn on the `network` option to turn the `gRPC` switch on.
@@ -220,11 +221,16 @@ tar czvf dashboard.tar.gz /dashboard
 |   |   |-- config.yaml      # Configuration for the Nezha panel, e.g. Github OAuth2 / gRPC domain / port / TLS enabled or not.
 |   |   `-- sqlite.db        # SQLite database file that records all severs and cron settings for the panel.
 |   |-- entrypoint.sh        # The main script, which is executed after the container is run.
-|   |-- nezha-agent          # Nezha client, used to monitor the localhost.
 |   |-- nezha.csr            # SSL/TLS certificate signing request
 |   |-- nezha.key            # Private key information for SSL/TLS certificate.
 |   |-- nezha.pem            # SSL/TLS Privacy Enhancement Email
 |   `-- restore.sh           # Restore backup scripts
+|-- usr
+|   `-- local
+|       `-- bin
+|           |-- cloudflared  # Cloudflare Argo tunnel main program.
+|           |-- grpcwebproxy # gRPC reverse proxy main program.
+|           `-- nezha-agent  # Nezha client, used to monitor the localhost.
 |-- dbfile                   # Record the name of the latest restore or backup file
 `-- version                  # Record the current panel app version
 ```
@@ -240,6 +246,7 @@ tar czvf dashboard.tar.gz /dashboard
 * How to add your own Runner host to GitHub Actions: https://cloud.tencent.com/developer/article/1756690
 * github self-hosted runner addition and startup: https://blog.csdn.net/sinat_32188225/article/details/125978331
 * How to export a file from a Docker image: https://www.pkslow.com/archives/extract-files-from-docker-image
+* grpcwebproxy: https://github.com/improbable-eng/grpc-web/tree/master/go/grpcwebproxy
 
 
 ## Disclaimer

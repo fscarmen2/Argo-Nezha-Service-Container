@@ -29,14 +29,15 @@ Documentation: [English version](https://github.com/fscarmen2/Argo-Nezha-Service
 * Argo 隧道突破需要公网入口的限制 --- 传统的哪吒需要有两个公网端口，一个用于面板的访问，另一个用于客户端上报数据，本项目借用 Cloudflare Argo 隧道，使用内网穿透的办法
 * IPv4 / v6 具备更高的灵活性 --- 传统哪吒需要处理服务端和客户端的 IPv4/v6 兼容性问题，还需要通过 warp 等工具来解决不对应的情况。然而，本项目可以完全不需要考虑这些问题，可以任意对接，更加方便和简便
 * 一条 Argo 隧道分流多个域名和协议 --- 建立一条内网穿透的 Argo 隧道，即可分流三个域名(hostname)和协议(protocal)，分别用于面板的访问(http)，客户端上报数据(tcp)和 ssh（可选）
-* Nginx 反向代理的 gRPC 数据端口 --- 配上证书做 tls 终结，然后 Argo 的隧道配置用 https 服务指向这个反向代理，启用http2回源，grpc(nezha)->h2(nginx)->argo->cf cdn edge->agent
+* GrpcWebProxy 反向代理的 gRPC 数据端口 --- 配上证书做 tls 终结，然后 Argo 的隧道配置用 https 服务指向这个反向代理，启用http2回源，grpc(nezha)->GrpcWebProxy->h2(argo)->cf cdn edge->agent
 * 每天自动备份 --- 北京时间每天 4 时 0 分自动备份整个哪吒面板文件夹到指定的 github 私库，包括面板主题，面板设置，探针数据和隧道信息，备份保留近 5 天数据；鉴于内容十分重要，必须要放在私库
 * 每天自动更新面板 -- 北京时间每天 4 时 0 分自动检测最新的官方面板版本，有升级时自动更新
 * 手/自一体还原备份 --- 每分钟检测一次在线还原文件的内容，遇到有更新立刻还原
 * 默认内置本机探针 --- 能很方便的监控自身服务器信息
 * 数据更安全 --- Argo 隧道使用TLS加密通信，可以将应用程序流量安全地传输到 Cloudflare 网络，提高了应用程序的安全性和可靠性。此外，Argo Tunnel也可以防止IP泄露和DDoS攻击等网络威胁
 
-<img width="1298" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/6535a060-2138-4c72-9ffa-1175dc6f5c25.png">
+<img width="1298" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/a1192434-fb60-4944-b6d0-de4235323e3d">
+
 
 ## Argo 认证的获取方式: json 或 token
 Argo 隧道认证方式有 json 和 token，使用两个方式其中之一
@@ -58,7 +59,7 @@ Argo 隧道认证方式有 json 和 token，使用两个方式其中之一
 <img width="1659" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/5aa4df19-f277-4582-8a4d-eef34a00085c">
 <img width="1470" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/ec06ec20-a68d-405c-b6de-cd4c52cbd8c0">
 <img width="1652" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/d0fba15c-f41b-4ee4-bea3-f0506d9b2d23">
-<img width="1670" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/2a28eab8-e434-4d06-85db-f2017b50f8de">
+<img width="1394" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/ab526fae-7a71-4a7c-9aee-a3bfe4774958">
 <img width="1671" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/c6bcc511-e2f9-4616-bcca-47e1a8a25313">
 <img width="1670" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/7fbe3ef7-fb43-4925-9478-89ee08e44941">
 
@@ -111,7 +112,6 @@ Koyeb
 <img width="927" alt="image" src="https://user-images.githubusercontent.com/92626977/231088411-fbac3e6e-a8a6-4661-bcf8-7c777aa8ffeb.png">
 <img width="750" alt="image" src="https://user-images.githubusercontent.com/92626977/231088973-7134aefd-4c80-4559-8e40-17c3be11d27d.png">
 <img width="755" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/27a26b1b-6934-41a8-aca4-8a094c905850">
-<img width="754" alt="image" src="https://user-images.githubusercontent.com/92626977/233336491-6bb801af-257d-467d-aaf0-6dcb68a531ac.png">
 <img width="1187" alt="image" src="https://user-images.githubusercontent.com/92626977/231092893-c8f017a2-ee0e-4e28-bee3-7343158f0fa7.png">
 <img width="500" alt="image" src="https://user-images.githubusercontent.com/92626977/231094144-df6715bc-c611-47ce-a529-03c43f38102e.png">
 
@@ -220,11 +220,16 @@ tar czvf dashboard.tar.gz /dashboard
 |   |   |-- config.yaml      # 哪吒面板的配置，如 Github OAuth2 / gRPC 域名 / 端口 / 是否启用 TLS 等信息
 |   |   `-- sqlite.db        # SQLite 数据库文件，记录着面板设置的所有 severs 和 cron 等信息
 |   |-- entrypoint.sh        # 主脚本，容器运行后执行
-|   |-- nezha-agent          # 哪吒客户端，用于监控本地 localhost
 |   |-- nezha.csr            # SSL/TLS 证书签名请求
 |   |-- nezha.key            # SSL/TLS 证书的私钥信息
 |   |-- nezha.pem            # SSL/TLS 隐私增强邮件
 |   `-- restore.sh           # 还原备份脚本
+|-- usr
+|   `-- local
+|       `-- bin
+|           |-- cloudflared  # Cloudflare Argo 隧道主程序
+|           |-- grpcwebproxy # gRPC 反代主程序
+|           `-- nezha-agent  # 哪吒客户端，用于监控本地 localhost
 |-- dbfile                   # 记录最新的还原或备份文件名
 `-- version                  # 记录当前的面板 app 版本
 ```
@@ -240,6 +245,7 @@ tar czvf dashboard.tar.gz /dashboard
 * 如何给 GitHub Actions 添加自己的 Runner 主机: https://cloud.tencent.com/developer/article/1756690
 * github self-hosted runner 添加与启动: https://blog.csdn.net/sinat_32188225/article/details/125978331
 * 如何从Docker镜像中导出文件: https://www.pkslow.com/archives/extract-files-from-docker-image
+* grpcwebproxy: https://github.com/improbable-eng/grpc-web/tree/master/go/grpcwebproxy
 
 
 ## 免责声明:
