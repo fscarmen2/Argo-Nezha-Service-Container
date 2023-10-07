@@ -101,7 +101,12 @@ error() { echo -e "\033[31m\033[01m\$*\033[0m" && exit 1; } # 红色
 info() { echo -e "\033[32m\033[01m\$*\033[0m"; }   # 绿色
 hint() { echo -e "\033[33m\033[01m\$*\033[0m"; }   # 黄色
 
-[ "\$(wget -qO- --header="Authorization: token \$GH_PAT" https://api.github.com/repos/\$GH_BACKUP_USER/\$GH_REPO | grep -oPm1 '(?<="private": ).*(?=,)')" != true ] && error "\n This is not exist nor a private repository and the script exits. \n"
+IS_PRIVATE="\$(wget -qO- --header="Authorization: token \$GH_PAT" https://api.github.com/repos/\$GH_BACKUP_USER/\$GH_REPO | grep -oPm1 '(?<="private": ).*(?=,)')"
+if [ "\$?" != 0 ]; then
+  error "\n Could not connect to Github. Stop backup. \n"
+elif [ "\$IS_PRIVATE" != true ]; then
+  error "\n This is not exist nor a private repository and the script exits. \n"
+fi
 
 [ -n "\$1" ] && WAY=Scheduled || WAY=Manualed
 
@@ -126,7 +131,6 @@ if [[ \$(supervisorctl status nezha) =~ STOPPED ]]; then
   tar czvf \$GH_REPO/dashboard-\$TIME.tar.gz --exclude='dashboard/*.sh' --exclude='dashboard/app' --exclude='dashboard/argo.*' --exclude='dashboard/nezha.*' /dashboard
   cd \$GH_REPO
   [ -e ./.git/index.lock ] && rm -f ./.git/index.lock
-  echo "dashboard-\$TIME.tar.gz" > /dbfile
   echo "dashboard-\$TIME.tar.gz" > README.md
   find ./ -name '*.gz' | sort | head -n -5 | xargs rm -f
   git config --global user.email \$GH_EMAIL
@@ -135,8 +139,10 @@ if [[ \$(supervisorctl status nezha) =~ STOPPED ]]; then
   git add .
   git commit -m "\$WAY at \$TIME ."
   git push -f -u origin HEAD:main --quiet
+  IS_BACKUP="\$?"
   cd ..
   rm -rf \$GH_REPO
+  [ "\$IS_BACKUP" = 0 ] && echo "dashboard-\$TIME.tar.gz" > /dbfile && info "\n Succeed to upload the backup files dashboard-\$TIME.tar.gz to Github.\n" || hint "\n Failed to upload the backup files dashboard-\$TIME.tar.gz to Github.\n"
   hint "\n\$(supervisorctl start agent nezha grpcwebproxy)\n"; sleep 2
 fi
 
