@@ -1,0 +1,18 @@
+version: '3.8'
+services:
+    argo-nezha:
+        image: fscarmen/argo-nezha
+        container_name: nezha_dashboard
+        restart: always
+        environment:
+            - GH_USER=sh13026 \
+            - GH_EMAIL=907678247@qq.com \
+            - GH_PAT=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 \
+            - GH_REPO=nezha_backup \
+            - GH_CLIENTID=af77e042b3c15f165aaa  \
+            - GH_CLIENTSECRET=9f4de99e4b838e0ddd596407f5827c4b71d37552 \
+            - ARGO_AUTH='{"AccountTag":"d1840690d4b6fc3c7aa957c2358ea0a5","TunnelSecret":"NRYgYz8mMOIDfkNbnLbJ/R/85aVRQcWbFU652JFms00=","TunnelID":"3cb90b6e-ef95-49ca-b7e2-1a66fc444106"}' \
+            - WEB_DOMAIN=nezha.linjiangxian.fun \
+            - DATA_DOMAIN=data.linjiangxian.fun \
+            - SSH_DOMAIN=ssh.linjiangxian.fun \
+            - SSH_PASSWORD=sh13026 \
