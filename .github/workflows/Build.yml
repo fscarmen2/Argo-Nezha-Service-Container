@@ -25,9 +25,9 @@ jobs:
 
       - name: Check the latest verion
         run: |
-          [ -e app/README.md ] && NOW=$(cat app/README.md)
-          LATEST=$(sudo wget -qO- https://raw.githubusercontent.com/naiba/nezha/master/README.md | grep -oP '(?<=master&label=Dash%20)[^&]*')
-          [ "$NOW" != "$LATEST" ] && echo "VERSION=$LATEST" >> $GITHUB_ENV || true
+          [ -e app/README.md ] && NOW=$(awk '/Images/{print $NF}' app/README.md)
+          LATEST=$(awk '/Repo/{print $NF}' app/README.md )
+          [ "$NOW" != "$LATEST" ] && sed -i "/Images/s/\(.*[ ]\)v.*/\1$LATEST/" app/README.md && echo "VERSION=$LATEST" >> $GITHUB_ENV || true
 
       - name: Set up QEMU
         if: ${{ env.VERSION != '' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
@@ -51,3 +51,9 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.DOCKERHUB_REPOSITORY }}
+
+      - name: Upload to repository
+        uses: stefanzweifel/git-auto-commit-action@v4.16.0
+        if: ${{ env.VERSION != '' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
+        with:
+          commit_message: Push images ${{ env.VERSION }} by Github Actions, ${{ env.DATE }}

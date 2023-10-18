@@ -44,7 +44,7 @@ jobs:
             DATE=$(date "+%Y/%m/%d")
             echo "VERSION=$LATEST" >> $GITHUB_ENV
             echo "DATE=$(date "+%Y/%m/%d")" >> $GITHUB_ENV
-            echo "$LATEST" > app/README.md
+            sed -i "/Repo/s/\(.*[ ]\)v.*/\1$LATEST/" app/README.md
           fi
 
       - name: Upload to repository
