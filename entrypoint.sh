@@ -8,7 +8,7 @@ info() { echo -e "\033[32m\033[01m$*\033[0m"; }   # 绿色
 hint() { echo -e "\033[33m\033[01m$*\033[0m"; }   # 黄色
 
 # 如参数不齐全，容器退出，另外处理某些环境变量填错后的处理
-[[ -z "$GH_USER" || -z "$GH_CLIENTID" || -z "$GH_CLIENTSECRET" || -z "$ARGO_AUTH" || -z "$WEB_DOMAIN" || -z "$DATA_DOMAIN" ]] && error " There are variables that are not set. "
+[[ -z "$GH_USER" || -z "$GH_CLIENTID" || -z "$GH_CLIENTSECRET" || -z "$ARGO_AUTH" || -z "$ARGO_DOMAIN" ]] && error " There are variables that are not set. "
 [[ "$ARGO_AUTH" =~ TunnelSecret ]] && grep -qv '"' <<< "$ARGO_AUTH" && ARGO_AUTH=$(sed 's@{@{"@g;s@[,:]@"\0"@g;s@}@"}@g' <<< "$ARGO_AUTH")  # Json 时，没有了"的处理
 [ -n "$GH_REPO" ] && grep -q '/' <<< "$GH_REPO" && GH_REPO=$(awk -F '/' '{print $NF}' <<< "$GH_REPO")  # 填了项目全路径的处理
 
@@ -31,7 +31,7 @@ oauth2:
   clientsecret: $GH_CLIENTSECRET
 httpport: 80
 grpcport: 5555
-grpchost: $DATA_DOMAIN
+grpchost: $ARGO_DOMAIN
 proxygrpcport: 443
 tls: true
 enableipchangenotification: false
@@ -41,13 +41,10 @@ ignoredipnotification: ""
 ignoredipnotificationserverids: {}
 EOF
 
-# 需要 argo ssh 的，设置变量 SSH_JSON 和 SH_PASSWORD
-if [ -n "$SSH_DOMAIN" ]; then
-  SSH_PASSWORD=${SSH_PASSWORD:-password}
-  echo root:"$SSH_PASSWORD" | chpasswd root
-  sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/g;s/^#\?PasswordAuthentication.*/PasswordAuthentication yes/g' /etc/ssh/sshd_config
-  service ssh restart
-fi
+# SSH path 与 GH_CLIENTSECRET 一样
+echo root:"$GH_CLIENTSECRET" | chpasswd root
+sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/g;s/^#\?PasswordAuthentication.*/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+service ssh restart
 
 # 判断 ARGO_AUTH 为 json 还是 token
 # 如为 json 将生成 argo.json 和 argo.yml 文件
@@ -56,23 +53,23 @@ if [[ "$ARGO_AUTH" =~ TunnelSecret ]]; then
 
   echo "$ARGO_AUTH" > /dashboard/argo.json
 
-  [ -z "$SSH_DOMAIN" ] && SSH_DISABLE=#
-
   cat > /dashboard/argo.yml << EOF
 tunnel: $(cut -d '"' -f12 <<< "$ARGO_AUTH")
 credentials-file: /dashboard/argo.json
 protocol: http2
 
 ingress:
-  - hostname: $WEB_DOMAIN
-    service: http://localhost:80
-$SSH_DISABLE  - hostname: $SSH_DOMAIN
-$SSH_DISABLE    service: ssh://localhost:22
-  - hostname: $DATA_DOMAIN
+  - hostname: $ARGO_DOMAIN
     service: https://localhost:443
+    path: /proto.NezhaService/*
     originRequest:
       http2Origin: true
       noTLSVerify: true
+  - hostname: $ARGO_DOMAIN
+    service: ssh://localhost:22
+    path: /$GH_CLIENTID/*
+  - hostname: $ARGO_DOMAIN
+    service: http://localhost:80
   - service: http_status:404
 EOF
 
@@ -83,7 +80,7 @@ fi
 
 # 生成自签署SSL证书
 openssl genrsa -out /dashboard/nezha.key 2048
-openssl req -new -subj "/CN=$DATA_DOMAIN" -key nezha.key -out /dashboard/nezha.csr
+openssl req -new -subj "/CN=$ARGO_DOMAIN" -key /dashboard/nezha.key -out /dashboard/nezha.csr
 openssl x509 -req -days 36500 -in /dashboard/nezha.csr -signkey /dashboard/nezha.key -out /dashboard/nezha.pem
 
 # 生成备份和恢复脚本
@@ -128,7 +125,7 @@ if [[ \$(supervisorctl status nezha) =~ STOPPED ]]; then
     echo "\$LATEST" > /version
   fi
   TIME=\$(date "+%Y-%m-%d-%H:%M:%S")
-  tar czvf \$GH_REPO/dashboard-\$TIME.tar.gz --exclude='dashboard/*.sh' --exclude='dashboard/app' --exclude='dashboard/argo.*' --exclude='dashboard/nezha.*' /dashboard
+  tar czvf \$GH_REPO/dashboard-\$TIME.tar.gz --exclude='dashboard/*.sh' --exclude='dashboard/app' --exclude='dashboard/argo.*' --exclude='dashboard/nezha.*' --exclude='dashboard/data/config.yaml' /dashboard
   cd \$GH_REPO
   [ -e ./.git/index.lock ] && rm -f ./.git/index.lock
   echo "dashboard-\$TIME.tar.gz" > README.md
@@ -190,6 +187,7 @@ if [ -e /tmp/backup.tar.gz ]; then
   grep -q "dashboard/.*\.sh" <<< "\$FILE_LIST" && EXCLUDE[1]=--exclude='dashboard/*.sh'
   grep -q "dashboard/argo\..*" <<< "\$FILE_LIST" && EXCLUDE[2]=--exclude='dashboard/argo.*'
   grep -q "dashboard/nezha\..*" <<< "\$FILE_LIST" && EXCLUDE[3]=--exclude='dashboard/nezha.*'
+  grep -q "dashboard/data/config.yaml" <<< "\$FILE_LIST" && EXCLUDE[4]=--exclude='dashboard/data/config.yaml'
   tar xzvf /tmp/backup.tar.gz \${EXCLUDE[*]} -C /
   rm -f /tmp/backup.tar.gz
   hint "\n\$(supervisorctl start agent nezha grpcwebproxy)\n"; sleep 2

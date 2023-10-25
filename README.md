@@ -9,8 +9,8 @@ Documentation: [English version](https://github.com/fscarmen2/Argo-Nezha-Service
 # 目录
 
 - [项目特点](README.md#项目特点)
-- [Argo 认证的获取方式: json 或 token](README.md#argo-认证的获取方式-json-或-token)
 - [准备需要用的变量](README.md#准备需要用的变量)
+- [Argo 认证的获取方式: json 或 token](README.md#argo-认证的获取方式-json-或-token)
 - [PaaS 部署实例](README.md#PaaS-部署实例)
 - [VPS 部署实例](README.md#VPS-部署实例)
 - [客户端接入](README.md#客户端接入)
@@ -36,32 +36,7 @@ Documentation: [English version](https://github.com/fscarmen2/Argo-Nezha-Service
 * 默认内置本机探针 --- 能很方便的监控自身服务器信息
 * 数据更安全 --- Argo 隧道使用TLS加密通信，可以将应用程序流量安全地传输到 Cloudflare 网络，提高了应用程序的安全性和可靠性。此外，Argo Tunnel也可以防止IP泄露和DDoS攻击等网络威胁
 
-<img width="1298" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/a1192434-fb60-4944-b6d0-de4235323e3d">
-
-
-## Argo 认证的获取方式: json 或 token
-Argo 隧道认证方式有 json 和 token，使用两个方式其中之一
-
-### (方式 1 - Josn):
-#### 通过 Cloudflare Json 生成网轻松获取 Argo 隧道 json 信息: https://fscarmen.cloudflare.now.cc
-
-<img width="893" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/5b734a9d-b4fd-40ca-b7e6-5a1732a53175">
-
-#### 到 Cloudflare 官网，在相应的域名 `DNS` 记录里加上客户端上报数据(tcp)和 ssh（可选）的域名，打开橙色云启用 CDN
-
-<img width="1651" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/d5efb33d-b2a3-484c-b058-346c3e229088">
-<img width="1618" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/c44b638f-9984-47a7-a342-166549f6092e">
-
-### (方式 2 - Token): 通过 Cloudflare 官网，手动生成 Argo 隧道 token 信息
-#### 到 cf 官网：https://dash.cloudflare.com/ ，进入 zero trust 里生成 token 隧道和信息。
-
-<img width="1672" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/0c467d8b-5fbc-4bde-ac8a-db70ed8798f0">
-<img width="1659" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/5aa4df19-f277-4582-8a4d-eef34a00085c">
-<img width="1470" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/ec06ec20-a68d-405c-b6de-cd4c52cbd8c0">
-<img width="1652" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/d0fba15c-f41b-4ee4-bea3-f0506d9b2d23">
-<img width="1394" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/ab526fae-7a71-4a7c-9aee-a3bfe4774958">
-<img width="1671" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/c6bcc511-e2f9-4616-bcca-47e1a8a25313">
-<img width="1670" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/7fbe3ef7-fb43-4925-9478-89ee08e44941">
+<img width="1609" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/4893c3cd-5055-468f-8138-6c5460bdd1e4">
 
 
 ## 准备需要用的变量
@@ -86,6 +61,29 @@ Argo 隧道认证方式有 json 和 token，使用两个方式其中之一
 <img width="814" alt="image" src="https://user-images.githubusercontent.com/92626977/233345537-c5b9dc27-35c4-407b-8809-b0ef68d9ad55.png">
 
 
+## Argo 认证的获取方式: json 或 token
+Argo 隧道认证方式有 json 和 token，使用两个方式其中之一。推荐前者，理由脚本会处理好所有的 Argo 隧道参数和路径，后者需要到 Cloudflare 官网手动设置，容易出错。
+
+### (方式 1 - Json):
+#### 通过 Cloudflare Json 生成网轻松获取 Argo 隧道 json 信息: https://fscarmen.cloudflare.now.cc
+
+<img width="893" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/5b734a9d-b4fd-40ca-b7e6-5a1732a53175">
+
+### (方式 2 - Token): 通过 Cloudflare 官网，手动生成 Argo 隧道 token 信息
+#### 到 cf 官网：https://dash.cloudflare.com/
+* 进入 zero trust 里生成 token 隧道和信息。
+* 其中数据路径 443/https 为 `proto.NezhaService`
+* ssh 路径 22/ssh 为 < client id >
+
+<img width="1672" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/0c467d8b-5fbc-4bde-ac8a-db70ed8798f0">
+<img width="1659" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/5aa4df19-f277-4582-8a4d-eef34a00085c">
+<img width="1470" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/ec06ec20-a68d-405c-b6de-cd4c52cbd8c0">
+<img width="1342" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/538707e1-a17b-4a0f-a8c0-63d0c7bc96aa">
+<img width="1020" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/9f5778fd-aa94-4fda-9d85-552b68f6d530">
+<img width="1652" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/d0fba15c-f41b-4ee4-bea3-f0506d9b2d23">
+<img width="1410" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/228b8e86-32a8-479a-8a86-89ed9b8b5b5e">
+
+
 ## PaaS 部署实例
 镜像 `fscarmen/argo-nezha:latest` ， 支持 amd64 和 arm64 架构
 
@@ -95,30 +93,27 @@ Argo 隧道认证方式有 json 和 token，使用两个方式其中之一
   | GH_USER        | 是 | github 的用户名，用于面板管理授权 |
   | GH_CLIENTID    | 是 | 在 github 上申请 |
   | GH_CLIENTSECRET| 是 | 在 github 上申请 |
-  | GH_BACKUP_USER  | 否 | 在 github 上备份哪吒服务端数据库的 github 用户名，不填则与面板管理授权的账户 GH_USER 一致  |
+  | GH_BACKUP_USER | 否 | 在 github 上备份哪吒服务端数据库的 github 用户名，不填则与面板管理授权的账户 GH_USER 一致  |
   | GH_REPO        | 否 | 在 github 上备份哪吒服务端数据库文件的 github 库 |
   | GH_EMAIL       | 否 | github 的邮箱，用于备份的 git 推送到远程库 |
   | GH_PAT         | 否 | github 的 PAT |
   | ARGO_AUTH      | 是 | Json: 从 https://fscarmen.cloudflare.now.cc 获取的 Argo Json<br> Token: 从 Cloudflare 官网获取 |
-  | DATA_DOMAIN    | 是 | 客户端与服务端的通信 argo 域名 |
-  | WEB_DOMAIN     | 是 | 面板 argo 域名 |
-  | SSH_DOMAIN     | 否 | ssh 用的 argo 域名 |
-  | SSH_PASSWORD   | 否 | ssh 的密码，只有在设置 SSH_JSON 后才生效，默认值 password |
+  | ARGO_DOMAIN    | 是 | Argo 域名 |
 
 Koyeb
 
-[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=docker&name=nezha&ports=80;http;/&env[GH_USER]=&env[GH_CLIENTID]=&env[GH_CLIENTSECRET]=&env[GH_REPO]=&env[GH_EMAIL]=&env[GH_PAT]=&env[ARGO_AUTH]=&env[DATA_DOMAIN]=&env[WEB_DOMAIN]=&env[SSH_DOMAIN]=&env[SSH_PASSWORD]=&image=docker.io/fscarmen/argo-nezha)
+[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=docker&name=nezha&ports=80;http;/&env[GH_USER]=&env[GH_CLIENTID]=&env[GH_CLIENTSECRET]=&env[GH_REPO]=&env[GH_EMAIL]=&env[GH_PAT]=&env[ARGO_AUTH]=&env[ARGO_DOMAIN]=&image=docker.io/fscarmen/argo-nezha)
 
 <img width="927" alt="image" src="https://user-images.githubusercontent.com/92626977/231088411-fbac3e6e-a8a6-4661-bcf8-7c777aa8ffeb.png">
 <img width="750" alt="image" src="https://user-images.githubusercontent.com/92626977/231088973-7134aefd-4c80-4559-8e40-17c3be11d27d.png">
-<img width="755" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/27a26b1b-6934-41a8-aca4-8a094c905850">
+<img width="877" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/8cfdb9ab-5fb6-483f-a382-47aef0d64bea">
 <img width="1187" alt="image" src="https://user-images.githubusercontent.com/92626977/231092893-c8f017a2-ee0e-4e28-bee3-7343158f0fa7.png">
 <img width="500" alt="image" src="https://user-images.githubusercontent.com/92626977/231094144-df6715bc-c611-47ce-a529-03c43f38102e.png">
 
 
 ## VPS 部署实例
-* 注意: ARGO_JSON= 后面需要有单引号，不能去掉
-* 如果 VPS 是 IPv6 only 的，请先安装 WARP IPv4 或者双栈: https://github.com/fscarmen/warp
+* 注意: ARGO_DOMAIN= 后面需要有单引号，不能去掉
+* 如果 VPS 是 IPv6 only 的，请先安装 WARP IPv4 或者双栈: https://gitlab.com/fscarmen/warp
 * 备份目录为当前路径的 dashboard 文件夹
 
 ### docker 部署
@@ -134,10 +129,8 @@ docker run -dit \
            -e GH_CLIENTID=<填获取的>  \
            -e GH_CLIENTSECRET=<填获取的> \
            -e ARGO_AUTH='<填获取的 Argo json 或者 token>' \
-           -e WEB_DOMAIN=<填自定义的> \
-           -e DATA_DOMAIN=<填自定义的> \
-           -e SSH_DOMAIN=<填自定义的> \
-           -e SSH_PASSWORD=<填自定义的> \
+           -e ARGO_DOMAIN=<填自定义的> \
+           -e GH_BACKUP_USER=<如与 GH_USER 一致，可以不要该环境变量> \
            fscarmen/argo-nezha
 ```
 
@@ -157,30 +150,29 @@ services:
             - GH_CLIENTID=<填获取的>
             - GH_CLIENTSECRET=<填获取的>
             - ARGO_AUTH='<填获取的 Argo json 或者 token>'
-            - WEB_DOMAIN=<填自定义的>
-            - DATA_DOMAIN=<填自定义的>
-            - SSH_DOMAIN=<填自定义的>
-            - SSH_PASSWORD=<填自定义的>
+            - ARGO_DOMAIN=<填自定义的>
+            - GH_BACKUP_USER=<如与 GH_USER 一致，可以不要该环境变量>
 ```
 
 
 ## 客户端接入
 通过gRPC传输，无需额外配置。使用面板给到的安装方式，举例
 ```
-curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install.sh -o nezha.sh && chmod +x nezha.sh && sudo ./nezha.sh install_agent data.seales.nom.za 443 eAxO9IF519fKFODlW0 --tls
+curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install.sh -o nezha.sh && chmod +x nezha.sh && sudo ./nezha.sh install_agent nezha.seales.nom.za 443 eAxO9IF519fKFODlW0 --tls
 ```
 
 
 ## SSH 接入
 * 以 macOS + WindTerm 为例，其他根据使用的 SSH 工具，结合官方官方说明文档: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/use_cases/ssh/#2-connect-as-a-user
 * 官方 cloudflared 下载: https://github.com/cloudflare/cloudflared/releases
-* 以下输入命令举例
+* 以下输入命令举例:
+  SSH 用户名: root， 密码：<GH_CLIENTSECRET>
 ```
-<file path>/cloudflared access ssh --hostname ssh.seales.nom.za
+<file path>/cloudflared access ssh --hostname nezha.seales.nom.za/<GH_CLIENTID>
 ```
 
-<img width="834" alt="image" src="https://user-images.githubusercontent.com/92626977/233349393-cec79e11-346e-4a57-8357-8d153d75ee40.png">
-<img width="830" alt="image" src="https://user-images.githubusercontent.com/92626977/233350601-73de67f9-19ca-451f-b395-8721abbb3342.png">
+<img width="1180" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/507b037a-25c6-457f-b2b5-d54f4b70a2b6">
+<img width="828" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/80284f0b-e2d7-4adb-982a-969aca0cb5f6">
 <img width="955" alt="image" src="https://user-images.githubusercontent.com/92626977/233350802-754624e0-8456-4353-8577-1f5385fb8723.png">
 
 
@@ -240,6 +232,7 @@ tar czvf dashboard.tar.gz /dashboard
 * 哪吒官网: https://nezha.wiki/ , TG 群: https://t.me/nezhamonitoring
 * 共穷国际老中医: http://solitud.es/
 * Akkia's Blog: https://blog.akkia.moe/
+* 胡桃's Blog: https://blog.萝莉.org/
 * HiFeng's Blog: https://www.hicairo.com/
 * 用 Cloudflare Tunnel 进行内网穿透: https://blog.outv.im/2021/cloudflared-tunnel/
 * 如何给 GitHub Actions 添加自己的 Runner 主机: https://cloud.tencent.com/developer/article/1756690

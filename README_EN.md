@@ -10,8 +10,8 @@ Documentation: English version | [中文版](https://github.com/fscarmen2/Argo-N
 
 - [Project Features](README.md#project-features)
 - [How to get Argo authentication: json or token](README.md#How-to-get-Argo-authentication-json-or-token)
-- [Variables to be used](README.md#prepare-variables-to-be-used)
 - [PaaS Deployment Example](README.md#paas-deployment-example)
+- [Variables to be used](README.md#prepare-variables-to-be-used)
 - [VPS Deployment Example](README.md#vps-deployment-example)
 - [Client Access](README.md#client-access)
 - [SSH Access](README.md#ssh-access)
@@ -36,32 +36,7 @@ Documentation: English version | [中文版](https://github.com/fscarmen2/Argo-N
 * Default built-in local probes --- can easily monitor their own server information
 * More secure data --- Argo Tunnel uses TLS encrypted communication to securely transmit application traffic to the Cloudflare network, improving application security and reliability. In addition, Argo Tunnel protects against network threats such as IP leaks and DDoS attacks.
 
-<img width="1298" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/a1192434-fb60-4944-b6d0-de4235323e3d">
-
-
-## How to get Argo authentication: json or token
-The Argo Tunnel authentication methods are json and token, use one of the two methods.
-
-### (Methods 1 - Josn):
-#### Easily get Argo tunnel json information through Cloudflare Json Generation Network: https://fscarmen.cloudflare.now.cc
-
-<img width="862" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/7bf8fefd-328f-43a1-ada6-4472904e8adb">
-
-#### Visit Cloudflare website, add the domain name of the client reporting data (tcp) and ssh (optional) in the `DNS` record of the corresponding domain, and turn on Orange Cloud to enable CDN.
-
-<img width="1629" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/39ecc388-e66b-44a2-a339-c80e9d7ed8e2">
-<img width="1632" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/1ad2042e-46e6-41c3-9c16-14dc8699ee72">
-
-### (Methods 2 - Token): Manually generate Argo tunnel token information via Cloudflare website.
-#### Go to the cf website: https://dash.cloudflare.com/ and go to zero trust to generate token tunnels and messages.
-
-<img width="1672" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/c2952ef2-7a3d-4242-84bc-3cbada1d337c">
-<img width="1652" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/89b2b758-e550-413d-aa3e-216d226da7f4">
-<img width="1463" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/9f77e26b-a25d-4ff0-8425-1085708e19c3">
-<img width="1652" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/d0fba15c-f41b-4ee4-bea3-f0506d9b2d23">
-<img width="1394" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/ab526fae-7a71-4a7c-9aee-a3bfe4774958">
-<img width="1671" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/c6bcc511-e2f9-4616-bcca-47e1a8a25313">
-<img width="1670" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/7fbe3ef7-fb43-4925-9478-89ee08e44941">
+<img width="1609" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/4893c3cd-5055-468f-8138-6c5460bdd1e4">
 
 
 ## Prepare variables to be used
@@ -86,6 +61,29 @@ Add `https://` to the beginning of the panel's domain name and `/oauth2/callback
 <img width="716" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/499fb58d-9dc7-4b3f-84d7-d709d679ec80">
 
 
+## How to get Argo authentication: json or token
+Argo tunnel authentication methods include json and token, use one of the two methods. The former is recommended because the script will handle all the Argo tunnel parameters and paths, while the latter needs to be set manually on the Cloudflare website and is prone to errors.
+
+### (Methods 1 - Json):
+#### Easily get Argo tunnel json information through Cloudflare Json Generation Network: https://fscarmen.cloudflare.now.cc
+
+<img width="862" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/7bf8fefd-328f-43a1-ada6-4472904e8adb">
+
+### (Methods 2 - Token): Manually generate Argo tunnel token information via Cloudflare website.
+#### Go to the cf website: https://dash.cloudflare.com/
+* Go to zero trust and generate token tunnel and message.
+* The data path 443/https is proto.
+* ssh path 22/ssh for < client id >.
+
+<img width="1672" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/c2952ef2-7a3d-4242-84bc-3cbada1d337c">
+<img width="1652" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/89b2b758-e550-413d-aa3e-216d226da7f4">
+<img width="1463" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/9f77e26b-a25d-4ff0-8425-1085708e19c3">
+<img width="1342" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/538707e1-a17b-4a0f-a8c0-63d0c7bc96aa">
+<img width="1020" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/9f5778fd-aa94-4fda-9d85-552b68f6d530">
+<img width="1652" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/d0fba15c-f41b-4ee4-bea3-f0506d9b2d23">
+<img width="1401" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/ed3d0849-da78-4fd5-9510-d410afc5e6af">
+
+
 ## PaaS Deployment Example
 Image `fscarmen/argo-nezha:latest`, supports amd64 and arm64 architectures.
 
@@ -100,24 +98,21 @@ Variables used
   | GH_EMAIL | No | github's mailbox for git push backups to remote repositories |
   | GH_PAT | No | github's PAT |
   | ARGO_AUTH | Yes | Argo Json from https://fscarmen.cloudflare.now.cc<br>Argo token from Cloudflare official website  |
-  | DATA_DOMAIN | Yes | Client-server communication argo domain name |
-  | WEB_DOMAIN | Yes | Panel argo domain |
-  | SSH_DOMAIN | No | ssh for argo domain |
-  | SSH_PASSWORD | no | password for ssh, only works after setting SSH_JSON, default password |
+  | ARGO_DOMAIN | Yes | Argo domain |
 
 Koyeb
 
-[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=docker&name=nezha&ports=80;http;/&env[GH_USER]=&env[GH_CLIENTID]=&env[GH_CLIENTSECRET]=&env[GH_REPO]=&env[GH_EMAIL]=&env[GH_PAT]=&env[ARGO_AUTH]=&env[DATA_DOMAIN]=&env[WEB_DOMAIN]=&env[SSH_DOMAIN]=&env[SSH_PASSWORD]=&image=docker.io/fscarmen/argo-nezha)
+[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=docker&name=nezha&ports=80;http;/&env[GH_USER]=&env[GH_CLIENTID]=&env[GH_CLIENTSECRET]=&env[GH_REPO]=&env[GH_EMAIL]=&env[GH_PAT]=&env[ARGO_AUTH]=&env[ARGO_DOMAIN]=&image=docker.io/fscarmen/argo-nezha)
 
 <img width="927" alt="image" src="https://user-images.githubusercontent.com/92626977/231088411-fbac3e6e-a8a6-4661-bcf8-7c777aa8ffeb.png">
 <img width="1011" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/61fad972-1be9-4e8d-829a-8faea0c8ed64">
-<img width="778" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/c070b085-dd7a-4182-9439-857f3116814e">
+<img width="854" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/655c889e-3037-46d7-ab00-3e6085e86f66">
 <img width="1214" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/ddabdf3a-ca63-4523-b839-62c4d4c0caf2">
 <img width="881" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/e623f92d-878f-4eb8-9dfe-55b59770ba2f">
 
 
 ## VPS Deployment Example
-* Note: ARGO_JSON= must be followed by single quotes, which cannot be removed.
+* Note: ARGO_DOMAIN= must be followed by single quotes, which cannot be removed.
 * If the VPS is IPv6 only, please install WARP IPv4 or dual-stack first: https://github.com/fscarmen/warp
 * The backup directory is the dashboard folder in the current path.
 
@@ -134,10 +129,8 @@ docker run -dit \
            -e GH_CLIENTID=<fill in acquired> \
            -e GH_CLIENTSECRET=<fill in acquired> \
            -e ARGO_AUTH='<Fill in the fetched Argo json or token>' \
-           -e WEB_DOMAIN=<fill in customized> \
-           -e DATA_DOMAIN=<fill in customized> \
-           -e SSH_DOMAIN=<fill in customized> \
-           -e SSH_PASSWORD=<insert customized> \
+           -e ARGO_DOMAIN=<fill in customized> \
+           -e GH_BACKUP_USER=<If it is consistent with GH_USER, you can leave it blank> \
            fscarmen/argo-nezha
 ```
 
@@ -157,10 +150,8 @@ services.
             - GH_CLIENTID=<fill in obtained>
             - GH_CLIENTSECRET=<fill in fetched>
             - ARGO_AUTH='<Fill in the fetched Argo json or token>'
-            - WEB_DOMAIN=<fill customized>
-            - DATA_DOMAIN=<fill in customized>
-            - SSH_DOMAIN=<insert customized>
-            - SSH_PASSWORD=<fill customized>
+            - ARGO_DOMAIN=<fill in customized>
+            - GH_BACKUP_USER=<If it is consistent with GH_USER, you can leave it blank>
 ```
 
 
@@ -174,13 +165,14 @@ curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install.sh -
 ## SSH access
 * Take macOS + WindTerm as an example, and other SSH tools depending on the one used, combined with the official documentation: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/use_cases/ssh /#2-connect-as-a-user
 * Official cloudflared download: https://github.com/cloudflare/cloudflared/releases
-* The following are examples of input commands
+* The following are examples of input commands.
+  SSH user: root， SSH password：<GH_CLIENTSECRET>
 ```
-<filepath>/cloudflared access ssh --hostname ssh.seals.nom.za
+<filepath>/cloudflared access ssh --hostname ssh.seals.nom.za/<GH_CLIENTID>
 ```
 
-<img width="828" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/25c7bd31-21b5-4684-b1cf-d6d6e0e85058">
-<img width="830" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/20a8661c-90b8-4b77-a046-0a2e42d7fee5">
+<img width="1189" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/0aeb3939-51c7-47ac-a7fd-25a8a01d3df5">
+<img width="840" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/16961ade-aafc-4132-92a1-aa218e0fead9">
 <img width="1201" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/3146b2e2-f988-487f-ab63-00218eb4d570">
 
 
@@ -241,6 +233,7 @@ tar czvf dashboard.tar.gz /dashboard
 * Nezha website: https://nezha.wiki/ , TG Group: https://t.me/nezhamonitoring
 * Common Poverty International Old Chinese Medicine: http://solitud.es/
 * Akkia's Blog: https://blog.akkia.moe/
+* Ayaka's Blog: https://blog.xn--pn1aul.org/
 * HiFeng's Blog: https://www.hicairo.com/
 * Intranet Penetration with Cloudflare Tunnel: https://blog.outv.im/2021/cloudflared-tunnel/
 * How to add your own Runner host to GitHub Actions: https://cloud.tencent.com/developer/article/1756690
