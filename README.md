@@ -12,7 +12,8 @@ Documentation: [English version](https://github.com/fscarmen2/Argo-Nezha-Service
 - [准备需要用的变量](README.md#准备需要用的变量)
 - [Argo 认证的获取方式: json 或 token](README.md#argo-认证的获取方式-json-或-token)
 - [PaaS 部署实例](README.md#PaaS-部署实例)
-- [VPS 部署实例](README.md#VPS-部署实例)
+- [VPS 部署方式 1 --- docker](README.md#vps-部署方式-1-----docker)
+- [VPS 部署方式 2 --- 宿主机](README.md#vps-部署方式-2-----宿主机)
 - [客户端接入](README.md#客户端接入)
 - [SSH 接入](README.md#ssh-接入)
 - [自动还原备份](README.md#自动还原备份)
@@ -25,7 +26,7 @@ Documentation: [English version](https://github.com/fscarmen2/Argo-Nezha-Service
 * * *
 
 ## 项目特点:
-* 适用范围更广 --- 只要能连通网络，就能安装哪吒服务端，如 Nas 虚拟机 , Container PaaS 等
+* 适用范围更广 --- 只要能连通网络，就能安装哪吒服务端，如 LXC, OpenVZ VPS，Nas 虚拟机 , Container PaaS 等
 * Argo 隧道突破需要公网入口的限制 --- 传统的哪吒需要有两个公网端口，一个用于面板的访问，另一个用于客户端上报数据，本项目借用 Cloudflare Argo 隧道，使用内网穿透的办法
 * IPv4 / v6 具备更高的灵活性 --- 传统哪吒需要处理服务端和客户端的 IPv4/v6 兼容性问题，还需要通过 warp 等工具来解决不对应的情况。然而，本项目可以完全不需要考虑这些问题，可以任意对接，更加方便和简便
 * 一条 Argo 隧道分流多个域名和协议 --- 建立一条内网穿透的 Argo 隧道，即可分流三个域名(hostname)和协议(protocal)，分别用于面板的访问(http)，客户端上报数据(tcp)和 ssh（可选）
@@ -111,7 +112,7 @@ Koyeb
 <img width="500" alt="image" src="https://user-images.githubusercontent.com/92626977/231094144-df6715bc-c611-47ce-a529-03c43f38102e.png">
 
 
-## VPS 部署实例
+## VPS 部署方式 1 --- docker
 * 注意: ARGO_DOMAIN= 后面需要有单引号，不能去掉
 * 如果 VPS 是 IPv6 only 的，请先安装 WARP IPv4 或者双栈: https://gitlab.com/fscarmen/warp
 * 备份目录为当前路径的 dashboard 文件夹
@@ -152,6 +153,12 @@ services:
             - ARGO_AUTH='<填获取的 Argo json 或者 token>'
             - ARGO_DOMAIN=<填自定义的>
             - GH_BACKUP_USER=<如与 GH_USER 一致，可以不要该环境变量>
+```
+
+
+## VPS 部署方式 2 --- 宿主机
+```
+bash <(wget -qO- https://raw.githubusercontent.com/fscarmen2/Argo-Nezha-Service-Container/main/dashboard.sh)
 ```
 
 
