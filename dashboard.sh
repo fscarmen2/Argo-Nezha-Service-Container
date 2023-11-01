@@ -143,9 +143,9 @@ check_install() {
   STATUS=$(text 26) && [ -s /etc/systemd/system/nezha-dashboard.service ] && STATUS=$(text 27) && [ "$(systemctl is-active nezha-dashboard)" = 'active' ] && STATUS=$(text 28)
 
   if [ "$STATUS" = "$(text 26)" ]; then
+    { download_static ${GH_PROXY}https://github.com/naiba/nezha >/dev/null 2>&1; }&
     { wget -qO $TEMP_DIR/cloudflared ${GH_PROXY}https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$ARCH >/dev/null 2>&1 && chmod +x $TEMP_DIR/cloudflared >/dev/null 2>&1; }&
     { wget -c ${GH_PROXY}https://github.com/fscarmen2/Argo-Nezha-Service-Container/releases/download/grpcwebproxy/grpcwebproxy_linux_$ARCH.tar.gz -qO- | tar xz -C $TEMP_DIR >/dev/null 2>&1; }&
-    { wget -c ${GH_PROXY}https://github.com/fscarmen2/Argo-Nezha-Service-Container/raw/main/resource.tar.gz -qO- | tar xz -C $TEMP_DIR >/dev/null 2>&1; }&
     if [ "$SYSTEM" = 'Alpine' ]; then
       { wget -qO $TEMP_DIR/app ${GH_PROXY}https://github.com/applexad/nezha-binary-build/releases/latest/download/dashboard-musl-linux-$ARCH >/dev/null 2>&1 && chmod +x $TEMP_DIR/app >/dev/null 2>&1; }&
     else
@@ -240,6 +240,13 @@ check_dependencies() {
   fi
 }
 
+download_static() {
+    (command -v git >/dev/null 2>&1 && git clone --filter=blob:none  --no-checkout $* $TEMP_DIR 2>&1)
+    pushd >/dev/null 2>&1
+    (cd $TEMP_DIR && git sparse-checkout init --cone >/dev/null 2>&1 && git sparse-checkout set resource >/dev/null 2>&1 && git checkout master >/dev/null 2>&1)
+    popd >/dev/null 2>&1
+}
+
 dashboard_variables() {
   [ -z "$GH_USER"] && reading " (1/9) $(text 9) " GH_USER
   [ -z "$GH_CLIENTID"] && reading "\n (2/9) $(text 10) " GH_CLIENTID
@@ -283,6 +290,7 @@ install() {
   # 从临时文件夹复制已下载的所有到工作文件夹
   wait
   [ ! -d ${WORK_DIR}/data ] && mkdir -p ${WORK_DIR}/data
+  ls -a $TEMP_DIR | grep -v resource | grep -v app | grep -v cloudflared | grep -v grpcwebproxy | xargs rm -rf >/dev/null 2>&1
   mv $TEMP_DIR/* $WORK_DIR && rm -rf $TEMP_DIR
 
   # 根据参数生成哪吒服务端配置文件
