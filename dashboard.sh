@@ -143,7 +143,6 @@ check_install() {
   STATUS=$(text 26) && [ -s /etc/systemd/system/nezha-dashboard.service ] && STATUS=$(text 27) && [ "$(systemctl is-active nezha-dashboard)" = 'active' ] && STATUS=$(text 28)
 
   if [ "$STATUS" = "$(text 26)" ]; then
-    { download_static ${GH_PROXY}https://github.com/naiba/nezha >/dev/null 2>&1; }&
     { wget -qO $TEMP_DIR/cloudflared ${GH_PROXY}https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$ARCH >/dev/null 2>&1 && chmod +x $TEMP_DIR/cloudflared >/dev/null 2>&1; }&
     { wget -c ${GH_PROXY}https://github.com/fscarmen2/Argo-Nezha-Service-Container/releases/download/grpcwebproxy/grpcwebproxy_linux_$ARCH.tar.gz -qO- | tar xz -C $TEMP_DIR >/dev/null 2>&1; }&
     if [ "$SYSTEM" = 'Alpine' ]; then
@@ -151,6 +150,7 @@ check_install() {
     else
       { wget -qO $TEMP_DIR/app ${GH_PROXY}https://github.com/fscarmen2/Argo-Nezha-Service-Container/raw/main/app/app-$DASHBOARD_ARCH >/dev/null 2>&1 && chmod +x $TEMP_DIR/app >/dev/null 2>&1; }&
     fi
+    download_static https://github.com/naiba/nezha >/dev/null 2>&1
   fi
 }
 
@@ -315,7 +315,7 @@ httpport: $WEB_PORT
 language: $DASHBOARD_LANGUAGE
 grpcport: $GRPC_PORT
 grpchost: $ARGO_DOMAIN
-proxygrpcport: $GRPC_PROXY_PORT
+proxygrpcport: 443
 tls: true
 oauth2:
   type: "github" #Oauth2 登录接入类型，github/gitlab/jihulab/gitee/gitea
