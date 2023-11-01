@@ -8,24 +8,25 @@ Documentation: English version | [中文版](https://github.com/fscarmen2/Argo-N
 
 # Catalog
 
-- [Project Features](README.md#project-features)
-- [How to get Argo authentication: json or token](README.md#How-to-get-Argo-authentication-json-or-token)
-- [PaaS Deployment Example](README.md#paas-deployment-example)
-- [Variables to be used](README.md#prepare-variables-to-be-used)
-- [VPS Deployment Example](README.md#vps-deployment-example)
-- [Client Access](README.md#client-access)
-- [SSH Access](README.md#ssh-access)
-- [Auto Restore Backup](README.md#automatically-restore-backups)
-- [Manual Restore Backup](README.md#manually-restore-the-backup)
-- [Migrating data](README.md#migrating-data)
-- [Main Directory Files and Descriptions](README.md#main-catalog-files-and-descriptions)
-- [Acknowledgment of articles and projects by the following authors](README.md#acknowledgements-for-articles-and-projects-by)
-- [Disclaimer](README.md#disclaimer)
+- [Project Features](README_EN.md#project-features)
+- [How to get Argo authentication: json or token](README_EN.md#How-to-get-Argo-authentication-json-or-token)
+- [Variables to be used](README_EN.md#prepare-variables-to-be-used)
+- [PaaS Deployment Example](README_EN.md#paas-deployment-example)
+- [VPS Deployment Method 1 --- docker](README_EN.md#vps-deployment-method-1-----docker)
+- [VPS Deployment Method 2 --- hosts](README_EN.md#vps-deployment-method-2-----hosts)
+- [Client Access](README_EN.md#client-access)
+- [SSH Access](README_EN.md#ssh-access)
+- [Auto Restore Backup](README_EN.md#automatically-restore-backups)
+- [Manual Restore Backup](README_EN.md#manually-restore-the-backup)
+- [Migrating data](README_EN.md#migrating-data)
+- [Main Directory Files and Descriptions](README_EN.md#main-catalog-files-and-descriptions)
+- [Acknowledgment of articles and projects by the following authors](README_EN.md#acknowledgements-for-articles-and-projects-by)
+- [Disclaimer](README_EN.md#disclaimer)
 
 * * *
 
 ## Project Features.
-* Wider scope of application --- As long as there is a network connection, Nezha server can be installed, such as Nas Virtual Machine, Container PaaS, etc.
+* Wider scope of application --- As long as there is a network connection, Nezha server can be installed, such as LXC, OpenVZ VPS, Nas Virtual Machine, Container PaaS, etc.
 * Argo tunnel breaks through the restriction of requiring a public network portal --- The traditional Nezha requires two public network ports, one for panel visiting and the other for client reporting, this project uses Cloudflare Argo tunnels and uses intranet tunneling.
 * IPv4 / v6 with higher flexibility --- The traditional Nezha needs to deal with IPv4/v6 compatibility between server and client, and also needs to resolve mismatches through tools such as warp. However, this project does not need to consider these issues at all, and can be docked arbitrarily, which is much more convenient and easy!
 * One Argo tunnel for multiple domains and protocols --- Create an intranet-penetrating Argo tunnel for three domains (hostname) and protocols, which can be used for panel access (http), client reporting (tcp) and ssh (optional).
@@ -111,7 +112,7 @@ Koyeb
 <img width="881" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/e623f92d-878f-4eb8-9dfe-55b59770ba2f">
 
 
-## VPS Deployment Example
+## VPS Deployment Method 1 --- docker
 * Note: ARGO_DOMAIN= must be followed by single quotes, which cannot be removed.
 * If the VPS is IPv6 only, please install WARP IPv4 or dual-stack first: https://github.com/fscarmen/warp
 * The backup directory is the dashboard folder in the current path.
@@ -152,6 +153,12 @@ services.
             - ARGO_AUTH='<Fill in the fetched Argo json or token>'
             - ARGO_DOMAIN=<fill in customized>
             - GH_BACKUP_USER=<If it is consistent with GH_USER, you can leave it blank>
+```
+
+
+## VPS Deployment Method 2 --- hosts
+```
+bash <(wget -qO- https://raw.githubusercontent.com/fscarmen2/Argo-Nezha-Service-Container/main/dashboard.sh)
 ```
 
 
