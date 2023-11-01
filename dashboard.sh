@@ -290,7 +290,9 @@ install() {
   # 从临时文件夹复制已下载的所有到工作文件夹
   wait
   [ ! -d ${WORK_DIR}/data ] && mkdir -p ${WORK_DIR}/data
-  ls -a $TEMP_DIR | grep -v resource | grep -v app | grep -v cloudflared | grep -v grpcwebproxy | xargs rm -rf >/dev/null 2>&1
+  pushd >/dev/null 2>&1
+  cd $TEMP_DIR && ls -a $TEMP_DIR | grep -v resource | grep -v app | grep -v cloudflared | grep -v grpcwebproxy | xargs rm -rf >/dev/null 2>&1
+  popd >/dev/null 2>&1
   mv $TEMP_DIR/* $WORK_DIR && rm -rf $TEMP_DIR
 
   # 根据参数生成哪吒服务端配置文件
