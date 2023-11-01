@@ -143,6 +143,7 @@ check_install() {
   STATUS=$(text 26) && [ -s /etc/systemd/system/nezha-dashboard.service ] && STATUS=$(text 27) && [ "$(systemctl is-active nezha-dashboard)" = 'active' ] && STATUS=$(text 28)
 
   if [ "$STATUS" = "$(text 26)" ]; then
+    download_static ${GH_PROXY}https://github.com/naiba/nezha >/dev/null 2>&1
     { wget -qO $TEMP_DIR/cloudflared ${GH_PROXY}https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$ARCH >/dev/null 2>&1 && chmod +x $TEMP_DIR/cloudflared >/dev/null 2>&1; }&
     { wget -c ${GH_PROXY}https://github.com/fscarmen2/Argo-Nezha-Service-Container/releases/download/grpcwebproxy/grpcwebproxy_linux_$ARCH.tar.gz -qO- | tar xz -C $TEMP_DIR >/dev/null 2>&1; }&
     if [ "$SYSTEM" = 'Alpine' ]; then
@@ -150,7 +151,6 @@ check_install() {
     else
       { wget -qO $TEMP_DIR/app ${GH_PROXY}https://github.com/fscarmen2/Argo-Nezha-Service-Container/raw/main/app/app-$DASHBOARD_ARCH >/dev/null 2>&1 && chmod +x $TEMP_DIR/app >/dev/null 2>&1; }&
     fi
-    download_static https://github.com/naiba/nezha >/dev/null 2>&1
   fi
 }
 
@@ -290,8 +290,7 @@ install() {
   # 从临时文件夹复制已下载的所有到工作文件夹
   wait
   [ ! -d ${WORK_DIR}/data ] && mkdir -p ${WORK_DIR}/data
-  ls -a $TEMP_DIR | grep -v resource | grep -v app | grep -v cloudflared | grep -v grpcwebproxy | xargs rm -rf >/dev/null 2>&1
-  mv $TEMP_DIR/* $WORK_DIR && rm -rf $TEMP_DIR
+  ls $TEMP_DIR | grep -E 'resource|app|cloudflared|grpcwebproxy' | sed "s~^~$TEMP_DIR/&~g" | xargs -I temp mv temp $WORK_DIR && rm -rf $TEMP_DIR
 
   # 根据参数生成哪吒服务端配置文件
   if [ "$L" = 'C' ]; then
