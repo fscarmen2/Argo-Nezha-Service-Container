@@ -246,6 +246,7 @@ tar czvf dashboard.tar.gz /dashboard
 * github self-hosted runner 添加与启动: https://blog.csdn.net/sinat_32188225/article/details/125978331
 * 如何从Docker镜像中导出文件: https://www.pkslow.com/archives/extract-files-from-docker-image
 * grpcwebproxy: https://github.com/improbable-eng/grpc-web/tree/master/go/grpcwebproxy
+* Applexad 的哪吒官方改版的面板二进制文件: https://github.com/applexad/nezha-binary-build
 
 
 ## 免责声明:

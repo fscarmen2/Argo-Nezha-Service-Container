@@ -20,7 +20,7 @@ jobs:
 
       - name: Check and fetch app
         run: |
-          [ -e app/README.md ] && NOW=$(cat app/README.md)
+          [ -e app/README.md ] && NOW=$(awk '/Repo/{print $NF}' app/README.md)
           LATEST=$(sudo wget -qO- https://raw.githubusercontent.com/naiba/nezha/master/README.md | grep -oP '(?<=master&label=Dash%20)[^&]*')
           if [ "$NOW" != "$LATEST" ]; then
             ARCH=("x86_64" "aarch64")

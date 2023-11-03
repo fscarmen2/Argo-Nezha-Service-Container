@@ -247,6 +247,7 @@ tar czvf dashboard.tar.gz /dashboard
 * github self-hosted runner addition and startup: https://blog.csdn.net/sinat_32188225/article/details/125978331
 * How to export a file from a Docker image: https://www.pkslow.com/archives/extract-files-from-docker-image
 * grpcwebproxy: https://github.com/improbable-eng/grpc-web/tree/master/go/grpcwebproxy
+* Applexad's binary of Nezha's officially dashboard: https://github.com/applexad/nezha-binary-build
 
 
 ## Disclaimer

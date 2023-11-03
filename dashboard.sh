@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # 各变量默认值
-GH_PROXY='https://ghproxy.com/'
+#GH_PROXY='https://ghproxy.com/'
 WORK_DIR='/opt/nezha/dashboard'
 TEMP_DIR='/tmp/nezha'
 START_PORT='5000'
@@ -43,11 +43,11 @@ E[14]="If you need to back up your database to Github regularly, please enter th
 C[14]="如需要定时把数据库备份到 Github，请输入 Github 私库名，否则请留空:"
 E[15]="Please enter the Github username for the database \(default \$GH_USER\):"
 C[15]="请输入数据库的 Github 用户名 \(默认 \$GH_USER\):"
-E[16]="Please enter the Github e-mail address :"
-C[16]="请输入 Github 邮箱:"
-E[17]="Please enter a Github PAT:"
-C[17]="请输入 Github PAT:"
-E[18]="There are variables that are not set. Installation aborted. Feedback:: [https://github.com/fscarmen2/Argo-Nezha-Service-Container/issues]"
+E[16]="Please enter a Github PAT:"
+C[16]="请输入 Github PAT:"
+E[17]="Downloading the \${FAILED[*]} failed. Installation aborted. Feedback: [https://github.com/fscarmen2/Argo-Nezha-Service-Container/issues]"
+C[17]="下载 \${FAILED[*]} 失败，安装中止，问题反馈:[https://github.com/fscarmen2/Argo-Nezha-Service-Container/issues]"
+E[18]="There are variables that are not set. Installation aborted. Feedback: [https://github.com/fscarmen2/Argo-Nezha-Service-Container/issues]"
 C[18]="参数不齐，安装中止，问题反馈:[https://github.com/fscarmen2/Argo-Nezha-Service-Container/issues]"
 E[19]="Exit"
 C[19]="退出"
@@ -71,8 +71,8 @@ E[28]="open"
 C[28]="开启"
 E[29]="Uninstall Nezha dashboard"
 C[29]="卸载哪吒面板"
-E[30]="Install Nezha dashboard"
-C[30]="安装哪吒面板"
+E[30]="Install fscarmen's VPS with Argo version (https://github.com/fscarmen2/Argo-Nezha-Service-Container)"
+C[30]="安装 fscarmen 的 VPS argo 带远程备份版 (https://github.com/fscarmen2/Argo-Nezha-Service-Container)"
 E[31]="successful"
 C[31]="成功"
 E[32]="failed"
@@ -81,8 +81,15 @@ E[33]="Could not find \$NEED_PORTS free ports, script exits. Feedback:[https://g
 C[33]="找不到 \$NEED_PORTS 个可用端口，脚本退出，问题反馈:[https://github.com/fscarmen2/Argo-Nezha-Service-Container/issues]"
 E[34]="Important!!! Please turn on gRPC at the Network of the relevant Cloudflare domain, otherwise the client data will not work! See the tutorial for details: [https://github.com/fscarmen2/Argo-Nezha-Service-Container]"
 C[34]="重要!!! 请到 Cloudflare 相关域名的 Network 处打开 gRPC 功能，否则客户端数据不通!具体可参照教程: [https://github.com/fscarmen2/Argo-Nezha-Service-Container]"
-E[35]="Requesting a self-signed certificate."
-C[35]="申请自我签名证书"
+E[35]="Please add two Public hostnames to Cloudnflare Tunnel: \\\n 1. ------------------------ \\\n Public hostname: \$ARGO_DOMAIN \\\n Path: proto.NezhaService \\\n Type: HTTPS \\\n URL: localhost:\$GRPC_PROXY_PORT \\\n Additional application settings ---\> TLS: Enable [No TLS Verify] and [HTTP2 connection] \\\n\\\n 2. ------------------------ \\\n Public hostname: \$ARGO_DOMAIN \\\n Type: HTTP \\\n URL: localhost:\$WEB_PORT"
+C[35]="请在 Cloudnflare Tunnel 里增加两个 Public hostnames: \\\n 1. ------------------------ \\\n Public hostname: \$ARGO_DOMAIN \\\n Path: proto.NezhaService \\\n Type: HTTPS \\\n URL: localhost:\$GRPC_PROXY_PORT \\\n Additional application settings ---\> TLS: 开启 [No TLS Verify] 和 [HTTP2 connection] 这两处功能 \\\n\\\n 2. ------------------------ \\\n Public hostname: \$ARGO_DOMAIN \\\n Type: HTTP \\\n URL: localhost:\$WEB_PORT"
+
+E[36]="Install applexad's VPS version (modified from official version) (https://github.com/applexad/nezhascript)"
+C[36]="安装 applexad 的官方修改 VPS 版 (https://github.com/applexad/nezhascript)"
+E[37]="Install Nezha's official docker version (https://github.com/naiba/nezha)"
+C[37]="安装哪吒官方的镜像版 (https://github.com/naiba/nezha)"
+E[38]="Downloading. Please wait a minute."
+C[38]="下载中, 请稍等"
 
 # 自定义字体彩色，read 函数
 warning() { echo -e "\033[31m\033[01m$*\033[0m"; }  # 红色
@@ -111,9 +118,15 @@ check_root() {
 check_arch() {
   # 判断处理器架构
   case $(uname -m) in
-    aarch64|arm64 ) ARCH=arm64; DASHBOARD_ARCH=aarch64 ;;
-    x86_64|amd64 ) ARCH=amd64; DASHBOARD_ARCH=x86_64 ;;
-    * ) error " $(text 25) " ;;
+    aarch64|arm64 )
+      ARCH=arm64
+      [ "$SYSTEM" = 'Alpine' ] && DASHBOARD_ARCH=musl-linux-arm64 || DASHBOARD_ARCH=linux-arm64
+      ;;
+    x86_64|amd64 )
+      ARCH=amd64
+      [ "$SYSTEM" = 'Alpine' ] && DASHBOARD_ARCH=musl-linux-amd64 || DASHBOARD_ARCH=linux-amd64
+      ;;
+    * ) error " $(text 25) "
   esac
 }
 
@@ -130,9 +143,9 @@ check_port() {
   done
 
   if  [ "${#FREE_PORT[@]}" = $NEED_PORTS ]; then
-    WEB_PORT=${FREE_PORT[0]}
-    GRPC_PORT=${FREE_PORT[1]}
-    GRPC_PROXY_PORT=${FREE_PORT[2]}
+    GRPC_PROXY_PORT=${FREE_PORT[0]}
+    WEB_PORT=${FREE_PORT[1]}
+    GRPC_PORT=${FREE_PORT[2]}
   else
     error "\n $(text 33) \n"
   fi
@@ -143,14 +156,10 @@ check_install() {
   STATUS=$(text 26) && [ -s /etc/systemd/system/nezha-dashboard.service ] && STATUS=$(text 27) && [ "$(systemctl is-active nezha-dashboard)" = 'active' ] && STATUS=$(text 28)
 
   if [ "$STATUS" = "$(text 26)" ]; then
-    download_static https://hub.fgit.cf/naiba/nezha >/dev/null 2>&1
+    { wget -c ${GH_PROXY}https://github.com/applexad/nezha-binary-build/releases/latest/download/resource.tar.gz -qO- | tar xz -C $TEMP_DIR >/dev/null 2>&1; }&
     { wget -qO $TEMP_DIR/cloudflared ${GH_PROXY}https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$ARCH >/dev/null 2>&1 && chmod +x $TEMP_DIR/cloudflared >/dev/null 2>&1; }&
     { wget -c ${GH_PROXY}https://github.com/fscarmen2/Argo-Nezha-Service-Container/releases/download/grpcwebproxy/grpcwebproxy_linux_$ARCH.tar.gz -qO- | tar xz -C $TEMP_DIR >/dev/null 2>&1; }&
-    if [ "$SYSTEM" = 'Alpine' ]; then
-      { wget -qO $TEMP_DIR/app ${GH_PROXY}https://github.com/applexad/nezha-binary-build/releases/latest/download/dashboard-musl-linux-$ARCH >/dev/null 2>&1 && chmod +x $TEMP_DIR/app >/dev/null 2>&1; }&
-    else
-      { wget -qO $TEMP_DIR/app ${GH_PROXY}https://github.com/fscarmen2/Argo-Nezha-Service-Container/raw/main/app/app-$DASHBOARD_ARCH >/dev/null 2>&1 && chmod +x $TEMP_DIR/app >/dev/null 2>&1; }&
-    fi
+    { wget -qO $TEMP_DIR/app ${GH_PROXY}https://github.com/applexad/nezha-binary-build/releases/latest/download/dashboard-$DASHBOARD_ARCH >/dev/null 2>&1 && chmod +x $TEMP_DIR/app >/dev/null 2>&1; }&
   fi
 }
 
@@ -240,20 +249,20 @@ check_dependencies() {
   fi
 }
 
-download_static() {
-    (command -v git >/dev/null 2>&1 && git clone --filter=blob:none  --no-checkout $* $TEMP_DIR 2>&1)
-    pushd >/dev/null 2>&1
-    (cd $TEMP_DIR && git sparse-checkout init --cone >/dev/null 2>&1 && git sparse-checkout set resource >/dev/null 2>&1 && git checkout master >/dev/null 2>&1)
-    popd >/dev/null 2>&1
+# 申请自签证书
+certificate() {
+  openssl genrsa -out ${TEMP_DIR}/nezha.key 2048 >/dev/null 2>&1
+  openssl req -new -subj "/CN=$ARGO_DOMAIN" -key ${TEMP_DIR}/nezha.key -out ${TEMP_DIR}/nezha.csr >/dev/null 2>&1
+  openssl x509 -req -days 36500 -in ${TEMP_DIR}/nezha.csr -signkey ${TEMP_DIR}/nezha.key -out ${TEMP_DIR}/nezha.pem >/dev/null 2>&1
 }
 
 dashboard_variables() {
-  [ -z "$GH_USER"] && reading " (1/9) $(text 9) " GH_USER
-  [ -z "$GH_CLIENTID"] && reading "\n (2/9) $(text 10) " GH_CLIENTID
-  [ -z "$GH_CLIENTSECRET"] && reading "\n (3/9) $(text 11) " GH_CLIENTSECRET
+  [ -z "$GH_USER"] && reading " (1/8) $(text 9) " GH_USER
+  [ -z "$GH_CLIENTID"] && reading "\n (2/8) $(text 10) " GH_CLIENTID
+  [ -z "$GH_CLIENTSECRET"] && reading "\n (3/8) $(text 11) " GH_CLIENTSECRET
   local a=5
   until [[ "$ARGO_AUTH" =~ TunnelSecret || "$ARGO_AUTH" =~ ^[A-Z0-9a-z=]{120,250}$ || "$ARGO_AUTH" =~ .*cloudflared.*service[[:space:]]+install[[:space:]]+[A-Z0-9a-z=]{1,100} ]]; do
-    [ "$a" = 0 ] && error "\n $(text 3) \n" || reading "\n (4/9) $(text 12) " ARGO_AUTH
+    [ "$a" = 0 ] && error "\n $(text 3) \n" || reading "\n (4/8) $(text 12) " ARGO_AUTH
     if [[ "$ARGO_AUTH" =~ TunnelSecret ]]; then
       ARGO_JSON=${ARGO_AUTH//[ ]/}
     elif [[ "$ARGO_AUTH" =~ ^[A-Z0-9a-z=]{120,250}$ ]]; then
@@ -267,17 +276,17 @@ dashboard_variables() {
   done
 
   # 处理可能输入的错误，去掉开头和结尾的空格，去掉最后的 :
-  [ -z "$ARGO_DOMAIN"] && reading "\n (5/9) $(text 13) " ARGO_DOMAIN
+  [ -z "$ARGO_DOMAIN"] && reading "\n (5/8) $(text 13) " ARGO_DOMAIN
   ARGO_DOMAIN=$(sed 's/[ ]*//g; s/:[ ]*//' <<< "$ARGO_DOMAIN")
+  { certificate; }&
 
   [[ -z "$GH_USER" || -z "$GH_CLIENTID" || -z "$GH_CLIENTSECRET" || -z "$ARGO_AUTH" || -z "$ARGO_DOMAIN" ]] && error "\n $(text 18) "
 
-  [ -z "$GH_REPO"] && reading "\n (6/9) $(text 14) " GH_REPO
+  [ -z "$GH_REPO"] && reading "\n (6/8) $(text 14) " GH_REPO
   if [ -n "$GH_REPO" ]; then
-    reading "\n (7/9) $(text 15) " GH_BACKUP_USER
+    reading "\n (7/8) $(text 15) " GH_BACKUP_USER
     GH_BACKUP_USER=${GH_BACKUP_USER:-$GH_USER}
-    [ -z "$GH_EMAIL"] && reading "\n (8/9) $(text 16) " GH_EMAIL
-    [ -z "$GH_PAT"] && reading "\n (9/9) $(text 17) " GH_PAT
+    [ -z "$GH_PAT"] && reading "\n (8/8) $(text 16) " GH_PAT
   fi
 }
 
@@ -287,10 +296,19 @@ install() {
 
   check_port
 
-  # 从临时文件夹复制已下载的所有到工作文件夹
+  hint "\n $(text 38) "
   wait
+
+  # 检测下载的文件或文件夹是否齐
+  for f in ${TEMP_DIR}/{cloudflared,grpcwebproxy,app,resource,nezha.key,nezha.csr,nezha.pem}; do
+    [ ! -s "$f" ] && FAILED+=("${f//${TEMP_DIR}\//}")
+  done
+  [ "${#FAILED[@]}" -gt 0 ] && error "\n $(text 17) "
+
+  # 从临时文件夹复制已下载的所有到工作文件夹
   [ ! -d ${WORK_DIR}/data ] && mkdir -p ${WORK_DIR}/data
-  ls $TEMP_DIR | grep -E 'resource|app|cloudflared|grpcwebproxy' | sed "s~^~$TEMP_DIR/&~g" | xargs -I temp mv temp $WORK_DIR && rm -rf $TEMP_DIR
+  cp -r $TEMP_DIR/{app,cloudflared,grpcwebproxy,resource,nezha.*} $WORK_DIR
+  rm -rf $TEMP_DIR
 
   # 根据参数生成哪吒服务端配置文件
   if [ "$L" = 'C' ]; then
@@ -360,6 +378,7 @@ EOF
   # 生成应用启动停止脚本及进程守护
   cat > ${WORK_DIR}/run.sh << EOF
 #!/usr/bin/env bash
+SYSTEM=$SYSTEM
 
 if [ "\$1" = 'start' ]; then
   cd ${WORK_DIR}
@@ -371,7 +390,7 @@ if [ "\$1" = 'start' ]; then
   $ARGO_RUNS
 
 elif [ "\$1" = 'stop' ]; then
-  ps -ef | awk '/\/opt\/nezha\/dashboard\/(cloudflared|grpcwebproxy|app)/{print \$2}' | xargs kill -9
+  [ "\$SYSTEM" = 'Alpine' ] && ps -ef | awk '/\/opt\/nezha\/dashboard\/(cloudflared|grpcwebproxy|app)/{print \$1}' | xargs kill -9 || ps -ef | awk '/\/opt\/nezha\/dashboard\/(cloudflared|grpcwebproxy|app)/{print \$2}' | xargs kill -9
 fi
 EOF
 
@@ -394,22 +413,18 @@ RestartSec=5s
 WantedBy=multi-user.target
 EOF
 
-  # 生成自签署SSL证书
-  hint " $(text 35) "
-  openssl genrsa -out ${WORK_DIR}/nezha.key 2048 >/dev/null 2>&1
-  openssl req -new -subj "/CN=$ARGO_DOMAIN" -key ${WORK_DIR}/nezha.key -out ${WORK_DIR}/nezha.csr >/dev/null 2>&1
-  openssl x509 -req -days 36500 -in ${WORK_DIR}/nezha.csr -signkey ${WORK_DIR}/nezha.key -out ${WORK_DIR}/nezha.pem >/dev/null 2>&1
-
   # 生成备份和恢复脚本
-  if [[ -n "$GH_BACKUP_USER" && -n "$GH_EMAIL" && -n "$GH_REPO" && -n "$GH_PAT" ]]; then
+  if [[ -n "$GH_BACKUP_USER" && -n "$GH_REPO" && -n "$GH_PAT" ]]; then
+
     # 生成定时备份数据库脚本，定时任务，删除 30 天前的备份
     cat > ${WORK_DIR}/backup.sh << EOF
 #!/usr/bin/env bash
 
 GH_PAT=$GH_PAT
 GH_BACKUP_USER=$GH_BACKUP_USER
-GH_EMAIL=$GH_EMAIL
 GH_REPO=$GH_REPO
+SYSTEM=$SYSTEM
+DASHBOARD_ARCH=$DASHBOARD_ARCH
 
 error() { echo -e "\033[31m\033[01m\$*\033[0m" && exit 1; } # 红色
 info() { echo -e "\033[32m\033[01m\$*\033[0m"; }   # 绿色
@@ -463,25 +478,27 @@ git config --global pack.threads 1
 git config --global pack.windowMemory 50m
 
 # 克隆现有备份库
-cd /tmp
-git clone https://\$GH_PAT@github.com/\$GH_BACKUP_USER/\$GH_REPO.git --depth 1 --quiet
+[ -d /tmp/\$GH_REPO ] && rm -rf /tmp/\$GH_REPO
+git clone https://\$GH_PAT@github.com/\$GH_BACKUP_USER/\$GH_REPO.git --depth 1 --quiet /tmp/\$GH_REPO
 
 # 检查更新面板主程序 app，然后 github 备份数据库，最后重启面板
 if [ "\$(systemctl is-active nezha-dashboard)" = 'inactive' ]; then
-  [ -e $WORK_DIR/version ] && NOW=\$(cat $WORK_DIR/version)
-  LATEST=\$(wget -qO- https://raw.githubusercontent.com/fscarmen2/Argo-Nezha-Service-Container/main/app/README.md | awk '/Repo/{print \$NF}')
+  cd $WORK_DIR
+  [ -s $WORK_DIR/app ] && NOW=\$(./app -v)
+  LATEST=\$(wget -qO- "https://api.github.com/repos/applexad/nezha-binary-build/releases/latest" | awk -F '"' '/"tag_name"/{print \$4}')
   if [[ "\$LATEST" =~ ^v([0-9]{1,3}\.){2}[0-9]{1,3}\$ && "\$NOW" != "\$LATEST" ]]; then
     hint "\n Renew dashboard app to \$LATEST \n"
-    wget -O ${WORK_DIR}/app https://raw.githubusercontent.com/fscarmen2/Argo-Nezha-Service-Container/main/app/app-\$(arch)
-    echo "\$LATEST" > $WORK_DIR/version
+    wget -O ${WORK_DIR}/app https://github.com/applexad/nezha-binary-build/releases/latest/download/dashboard-\$DASHBOARD_ARCH
   fi
+
+  cd /tmp
   TIME=\$(date "+%Y-%m-%d-%H:%M:%S")
-  tar czvf \$GH_REPO/dashboard-\$TIME.tar.gz --exclude="$WORK_DIR/*.sh" --exclude="$WORK_DIR/dbfile" --exclude="$WORK_DIR/version" --exclude="$WORK_DIR/app" --exclude="$WORK_DIR/argo.*" --exclude="$WORK_DIR/nezha.*" --exclude="$WORK_DIR/data/config.yaml" $WORK_DIR
+  tar czvf \$GH_REPO/dashboard-\$TIME.tar.gz $WORK_DIR/resource $WORK_DIR/data/sqlite.db
+
   cd \$GH_REPO
   [ -e ./.git/index.lock ] && rm -f ./.git/index.lock
   echo "dashboard-\$TIME.tar.gz" > README.md
   find ./ -name '*.gz' | sort | head -n -5 | xargs rm -f
-  git config --global user.email \$GH_EMAIL
   git config --global user.name \$GH_BACKUP_USER
   git checkout --orphan tmp_work
   git add .
@@ -505,6 +522,7 @@ EOF
 GH_PAT=$GH_PAT
 GH_BACKUP_USER=$GH_BACKUP_USER
 GH_REPO=$GH_REPO
+SYSTEM=$SYSTEM
 
 error() { echo -e "\033[31m\033[01m\$*\033[0m" && exit 1; } # 红色
 info() { echo -e "\033[32m\033[01m\$*\033[0m"; }   # 绿色
@@ -536,10 +554,11 @@ ABC
   fi
 }
 
+ONLINE="\$(wget -qO- --header="Authorization: token \$GH_PAT" "https://raw.githubusercontent.com/\$GH_BACKUP_USER/\$GH_REPO/main/README.md" | sed "/^$/d" | head -n 1)"
+
 if [ "\$1" = a ]; then
-  ONLINE="\$(wget -qO- --header="Authorization: token \$GH_PAT" "https://raw.githubusercontent.com/\$GH_BACKUP_USER/\$GH_REPO/main/README.md" | sed "/^$/d" | head -n 1)"
   [ "\$ONLINE" = "\$(cat $WORK_DIR/dbfile)" ] && exit
-  [[ "\$ONLINE" =~ tar\.gz$ && "\$ONLINE" != "\$(cat $WORK_DIR/dbfile)" ]] && FILE="\$ONLINE" && echo "\$FILE" > /dbfile || exit
+  [[ "\$ONLINE" =~ tar\.gz$ && "\$ONLINE" != "\$(cat $WORK_DIR/dbfile)" ]] && FILE="\$ONLINE" || exit
 elif [[ "\$1" =~ tar\.gz$ ]]; then
   FILE="\$1"
 fi
@@ -561,15 +580,8 @@ wget --header="Authorization: token \$GH_PAT" --header='Accept: application/vnd.
 if [ -e /tmp/backup.tar.gz ]; then
   hint "\n Stop Nezha-dashboard \n"
   cmd_systemctl disable
-  FILE_LIST=\$(tar -tzf /tmp/backup.tar.gz)
-  grep -q "$WORK_DIR/app" <<< "\$FILE_LIST" && EXCLUDE[0]=--exclude="$WORK_DIR/app"
-  grep -q "$WORK_DIR/.*\.sh" <<< "\$FILE_LIST" && EXCLUDE[1]=--exclude="$WORK_DIR/*.sh"
-  grep -q "$WORK_DIR/argo\..*" <<< "\$FILE_LIST" && EXCLUDE[2]=--exclude="$WORK_DIR/argo.*"
-  grep -q "$WORK_DIR/nezha\..*" <<< "\$FILE_LIST" && EXCLUDE[3]=--exclude="$WORK_DIR/nezha.*"
-  grep -q "$WORK_DIR/data/config.yaml" <<< "\$FILE_LIST" && EXCLUDE[4]=--exclude="$WORK_DIR/data/config.yaml"
-  grep -q "$WORK_DIR/dbfile" <<< "\$FILE_LIST" && EXCLUDE[5]=--exclude="$WORK_DIR/dbfile"
-  grep -q "$WORK_DIR/version" <<< "\$FILE_LIST" && EXCLUDE[6]=--exclude="$WORK_DIR/version"
-  tar xzvf /tmp/backup.tar.gz \${EXCLUDE[*]} -C /
+  tar xzvf /tmp/backup.tar.gz -C / opt/nezha/dashboard/resource opt/nezha/dashboard/data/sqlite.db
+  echo "\$ONLINE" > $WORK_DIR/dbfile
   rm -f /tmp/backup.tar.gz
   hint "\n Start Nezha-dashboard \n"
   cmd_systemctl enable >/dev/null 2>&1; sleep 5
@@ -600,7 +612,12 @@ EOF
   sleep 5
 
   # 检测并显示结果
-  [ "$(systemctl is-active nezha-dashboard)" = 'active' ] && warning "\n $(text 34) " && info "\n $(text 30) $(text 31)! \n" || error "\n $(text 30) $(text 32)! \n"
+  if [ "$(systemctl is-active nezha-dashboard)" = 'active' ]; then
+    [ -n "$ARGO_TOKEN" ] && hint "\n $(text 35) "
+    warning "\n $(text 34) " && info "\n $(text 30) $(text 31)! \n"
+  else
+    error "\n $(text 30) $(text 32)! \n"
+  fi
 }
 
 # 卸载
@@ -613,7 +630,7 @@ uninstall() {
     sed -i "/\/opt\/nezha\/dashboard/d" /etc/crontab
     service cron reload >/dev/null 2>&1
   fi
-  info " $(text 29) $(text 31) "
+  info "\n $(text 29) $(text 31) "
 }
 
 # 判断当前 Argo-X 的运行状态，并对应的给菜单和动作赋值
@@ -632,12 +649,12 @@ menu_setting() {
 
   else
     OPTION[1]="1.  $(text 30)"
+    OPTION[2]="2.  $(text 36)"
+    OPTION[3]="3.  $(text 37)"
 
-    ACTION[1]() {
-      check_dependencies
-      install
-      exit
-    }
+    ACTION[1]() { check_dependencies; install; exit; }
+    ACTION[2]() { curl -L https://raw.fgit.cf/applexad/nezhascript/main/install.sh  -o nezha.sh && chmod +x nezha.sh && ./nezha.sh; exit; }
+    [ "$L" = 'C' ] && ACTION[3]() { curl -L https://jihulab.com/nezha/dashboard/-/raw/master/script/install.sh -o nezha.sh && chmod +x nezha.sh && CN=true ./nezha.sh; exit; } || ACTION[3]() { curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install_en.sh  -o nezha.sh && chmod +x nezha.sh && sudo ./nezha.sh; exit; }
   fi
 }
 
@@ -659,8 +676,8 @@ menu() {
 
 select_language
 check_root
-check_arch
 check_system_info
+check_arch
 check_install
 menu_setting
 menu
