@@ -210,28 +210,25 @@ tar czvf dashboard.tar.gz /dashboard
 
 ## Main catalog files and descriptions
 ```
-.
-|-- dashboard
-|   |-- app                  # Nezha panel main program
-|   |-- argo.json            # Argo tunnel json file, which records information about using the tunnel.
-|   |-- argo.yml             # Argo tunnel yml file, used for streaming web, gRPC and ssh protocols under a single tunnel with different domains.
-|   |-- backup.sh            # Backup data scripts
-|   |-- data
-|   |   |-- config.yaml      # Configuration for the Nezha panel, e.g. Github OAuth2 / gRPC domain / port / TLS enabled or not.
-|   |   `-- sqlite.db        # SQLite database file that records all severs and cron settings for the panel.
-|   |-- entrypoint.sh        # The main script, which is executed after the container is run.
-|   |-- nezha.csr            # SSL/TLS certificate signing request
-|   |-- nezha.key            # Private key information for SSL/TLS certificate.
-|   |-- nezha.pem            # SSL/TLS Privacy Enhancement Email
-|   `-- restore.sh           # Restore backup scripts
-|-- usr
-|   `-- local
-|       `-- bin
-|           |-- cloudflared  # Cloudflare Argo tunnel main program.
-|           |-- grpcwebproxy # gRPC reverse proxy main program.
-|           `-- nezha-agent  # Nezha client, used to monitor the localhost.
-|-- dbfile                   # Record the name of the latest restore or backup file
-`-- version                  # Record the current panel app version
+/dashboard/
+|-- app                  # Nezha panel main program
+|-- argo.json            # Argo tunnel json file, which records information about using the tunnel.
+|-- argo.yml             # Argo tunnel yml file, used for streaming web, gRPC and ssh protocols under a single tunnel with different domains.
+|-- backup.sh            # Backup data scripts
+|-- restore.sh           # Restore backup scripts
+|-- dbfile               # Record the name of the latest restore or backup file
+|-- version              # Record the current panel app version
+|-- resource             # Folders of information on panel themes, languages, flags, etc.
+|-- data
+|   |-- config.yaml      # Configuration for the Nezha panel, e.g. Github OAuth2 / gRPC domain / port / TLS enabled or not.
+|   `-- sqlite.db        # SQLite database file that records all severs and cron settings for the panel.
+|-- entrypoint.sh        # The main script, which is executed after the container is run.
+|-- nezha.csr            # SSL/TLS certificate signing request
+|-- nezha.key            # Private key information for SSL/TLS certificate.
+|-- nezha.pem            # SSL/TLS certificate file.
+|-- cloudflared          # Cloudflare Argo tunnel main program.
+|-- grpcwebproxy         # gRPC reverse proxy main program.
+`-- nezha-agent          # Nezha client, used to monitor the localhost.
 ```
 
 

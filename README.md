@@ -209,28 +209,25 @@ tar czvf dashboard.tar.gz /dashboard
 
 ## 主体目录文件及说明
 ```
-.
-|-- dashboard
-|   |-- app                  # 哪吒面板主程序
-|   |-- argo.json            # Argo 隧道 json 文件，记录着使用隧道的信息
-|   |-- argo.yml             # Argo 隧道 yml 文件，用于在一同隧道下，根据不同域名来分流 web, gRPC 和 ssh 协议的作用
-|   |-- backup.sh            # 备份数据脚本
-|   |-- data
-|   |   |-- config.yaml      # 哪吒面板的配置，如 Github OAuth2 / gRPC 域名 / 端口 / 是否启用 TLS 等信息
-|   |   `-- sqlite.db        # SQLite 数据库文件，记录着面板设置的所有 severs 和 cron 等信息
-|   |-- entrypoint.sh        # 主脚本，容器运行后执行
-|   |-- nezha.csr            # SSL/TLS 证书签名请求
-|   |-- nezha.key            # SSL/TLS 证书的私钥信息
-|   |-- nezha.pem            # SSL/TLS 隐私增强邮件
-|   `-- restore.sh           # 还原备份脚本
-|-- usr
-|   `-- local
-|       `-- bin
-|           |-- cloudflared  # Cloudflare Argo 隧道主程序
-|           |-- grpcwebproxy # gRPC 反代主程序
-|           `-- nezha-agent  # 哪吒客户端，用于监控本地 localhost
-|-- dbfile                   # 记录最新的还原或备份文件名
-`-- version                  # 记录当前的面板 app 版本
+/dashboard/
+|-- app                  # 哪吒面板主程序
+|-- argo.json            # Argo 隧道 json 文件，记录着使用隧道的信息
+|-- argo.yml             # Argo 隧道 yml 文件，用于在一同隧道下，根据不同域名来分流 web, gRPC 和 ssh 协议的作用
+|-- backup.sh            # 备份数据脚本
+|-- restore.sh           # 还原备份脚本
+|-- dbfile               # 记录最新的还原或备份文件名
+|-- version              # 记录当前的面板 app 版本
+|-- resource             # 面板主题、语言和旗帜等资料的文件夹
+|-- data
+|   |-- config.yaml      # 哪吒面板的配置，如 Github OAuth2 / gRPC 域名 / 端口 / 是否启用 TLS 等信息
+|   `-- sqlite.db        # SQLite 数据库文件，记录着面板设置的所有 severs 和 cron 等信息
+|-- entrypoint.sh        # 主脚本，容器运行后执行
+|-- nezha.csr            # SSL/TLS 证书签名请求
+|-- nezha.key            # SSL/TLS 证书的私钥信息
+|-- nezha.pem            # SSL/TLS 证书文件
+|-- cloudflared          # Cloudflare Argo 隧道主程序
+|-- grpcwebproxy         # gRPC 反代主程序
+`-- nezha-agent          # 哪吒客户端，用于监控本地 localhost
 ```
 
 

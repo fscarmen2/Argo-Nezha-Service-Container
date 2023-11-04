@@ -10,9 +10,18 @@ hint() { echo -e "\033[33m\033[01m$*\033[0m"; }   # 黄色
 # 如参数不齐全，容器退出，另外处理某些环境变量填错后的处理
 [[ -z "$GH_USER" || -z "$GH_CLIENTID" || -z "$GH_CLIENTSECRET" || -z "$ARGO_AUTH" || -z "$ARGO_DOMAIN" ]] && error " There are variables that are not set. "
 [[ "$ARGO_AUTH" =~ TunnelSecret ]] && grep -qv '"' <<< "$ARGO_AUTH" && ARGO_AUTH=$(sed 's@{@{"@g;s@[,:]@"\0"@g;s@}@"}@g' <<< "$ARGO_AUTH")  # Json 时，没有了"的处理
+[[ "$ARGO_AUTH" =~ ey[A-Z0-9a-z=]{120,250}$ ]] && ARGO_AUTH=$(awk '{print $NF}' <<< "$ARGO_AUTH") # Token 复制全部，只取最后的 ey 开始的
 [ -n "$GH_REPO" ] && grep -q '/' <<< "$GH_REPO" && GH_REPO=$(awk -F '/' '{print $NF}' <<< "$GH_REPO")  # 填了项目全路径的处理
 
 echo -e "nameserver 127.0.0.11\nnameserver 8.8.4.4\nnameserver 223.5.5.5\nnameserver 2001:4860:4860::8844\nnameserver 2400:3200::1\n" > /etc/resolv.conf
+
+# 下载需要的应用
+wget -c https://github.com/fscarmen2/Argo-Nezha-Service-Container/releases/download/grpcwebproxy/grpcwebproxy_linux_$(uname -m | sed "s#x86_64#amd64#; s#aarch64#arm64#").tar.gz -qO- | tar xz -C /dashboard
+wget -qO /dashboard/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$(uname -m | sed "s#x86_64#amd64#; s#aarch64#arm64#")
+wget -O /dashboard/nezha-agent.zip https://github.com/nezhahq/agent/releases/latest/download/nezha-agent_linux_$(uname -m | sed "s#x86_64#amd64#; s#aarch64#arm64#").zip
+unzip /dashboard/nezha-agent.zip -d /dashboard/
+
+rm -f /dashboard/nezha-agent.zip
 
 # 根据参数生成哪吒服务端配置文件
 [ ! -d data ] && mkdir data
@@ -117,20 +126,19 @@ git clone https://\$GH_PAT@github.com/\$GH_BACKUP_USER/\$GH_REPO.git --depth 1 -
 
 # 检查更新面板主程序 app，然后 github 备份数据库，最后重启面板
 if [[ \$(supervisorctl status nezha) =~ STOPPED ]]; then
-  [ -e /version ] && NOW=\$(cat /version)
+  [ -e /dashboard/version ] && NOW=\$(cat /dashboard/version)
   LATEST=\$(wget -qO- https://raw.githubusercontent.com/fscarmen2/Argo-Nezha-Service-Container/main/app/README.md | awk '/Repo/{print \$NF}')
   if [[ "\$LATEST" =~ ^v([0-9]{1,3}\.){2}[0-9]{1,3}\$ && "\$NOW" != "\$LATEST" ]]; then
     hint "\n Renew dashboard app to \$LATEST \n"
     wget -O /dashboard/app https://raw.githubusercontent.com/fscarmen2/Argo-Nezha-Service-Container/main/app/app-\$(arch)
-    echo "\$LATEST" > /version
+    echo "\$LATEST" > /dashboard/version
   fi
   TIME=\$(date "+%Y-%m-%d-%H:%M:%S")
-  tar czvf \$GH_REPO/dashboard-\$TIME.tar.gz --exclude='dashboard/*.sh' --exclude='dashboard/app' --exclude='dashboard/argo.*' --exclude='dashboard/nezha.*' --exclude='dashboard/data/config.yaml' /dashboard
+  tar czvf \$GH_REPO/dashboard-\$TIME.tar.gz /dashboard/resource /dashboard/data/sqlite.db
   cd \$GH_REPO
   [ -e ./.git/index.lock ] && rm -f ./.git/index.lock
   echo "dashboard-\$TIME.tar.gz" > README.md
   find ./ -name '*.gz' | sort | head -n -5 | xargs rm -f
-  git config --global user.email \$GH_EMAIL
   git config --global user.name \$GH_BACKUP_USER
   git checkout --orphan tmp_work
   git add .
@@ -139,7 +147,7 @@ if [[ \$(supervisorctl status nezha) =~ STOPPED ]]; then
   IS_BACKUP="\$?"
   cd ..
   rm -rf \$GH_REPO
-  [ "\$IS_BACKUP" = 0 ] && echo "dashboard-\$TIME.tar.gz" > /dbfile && info "\n Succeed to upload the backup files dashboard-\$TIME.tar.gz to Github.\n" || hint "\n Failed to upload the backup files dashboard-\$TIME.tar.gz to Github.\n"
+  [ "\$IS_BACKUP" = 0 ] && echo "dashboard-\$TIME.tar.gz" > /dashboard/dbfile && info "\n Succeed to upload the backup files dashboard-\$TIME.tar.gz to Github.\n" || hint "\n Failed to upload the backup files dashboard-\$TIME.tar.gz to Github.\n"
   hint "\n\$(supervisorctl start agent nezha grpcwebproxy)\n"; sleep 2
 fi
 
@@ -158,10 +166,11 @@ error() { echo -e "\033[31m\033[01m\$*\033[0m" && exit 1; } # 红色
 info() { echo -e "\033[32m\033[01m\$*\033[0m"; }   # 绿色
 hint() { echo -e "\033[33m\033[01m\$*\033[0m"; }   # 黄色
 
+ONLINE="\$(wget -qO- --header="Authorization: token \$GH_PAT" "https://raw.githubusercontent.com/\$GH_BACKUP_USER/\$GH_REPO/main/README.md" | sed "/^$/d" | head -n 1)"
+
 if [ "\$1" = a ]; then
-  ONLINE="\$(wget -qO- --header="Authorization: token \$GH_PAT" "https://raw.githubusercontent.com/\$GH_BACKUP_USER/\$GH_REPO/main/README.md" | sed "/^$/d" | head -n 1)"
-  [ "\$ONLINE" = "\$(cat /dbfile)" ] && exit
-  [[ "\$ONLINE" =~ tar\.gz$ && "\$ONLINE" != "\$(cat /dbfile)" ]] && FILE="\$ONLINE" && echo "\$FILE" > /dbfile || exit
+  [ "\$ONLINE" = "\$(cat /dashboard/dbfile)" ] && exit
+  [[ "\$ONLINE" =~ tar\.gz$ && "\$ONLINE" != "\$(cat /dashboard/dbfile)" ]] && FILE="\$ONLINE" || exit
 elif [[ "\$1" =~ tar\.gz$ ]]; then
   FILE="\$1"
 fi
@@ -182,13 +191,11 @@ wget --header="Authorization: token \$GH_PAT" --header='Accept: application/vnd.
 
 if [ -e /tmp/backup.tar.gz ]; then
   hint "\n\$(supervisorctl stop agent nezha grpcwebproxy)\n"
-  FILE_LIST=\$(tar -tzf /tmp/backup.tar.gz)
-  grep -q "dashboard/app" <<< "\$FILE_LIST" && EXCLUDE[0]=--exclude='dashboard/app'
-  grep -q "dashboard/.*\.sh" <<< "\$FILE_LIST" && EXCLUDE[1]=--exclude='dashboard/*.sh'
-  grep -q "dashboard/argo\..*" <<< "\$FILE_LIST" && EXCLUDE[2]=--exclude='dashboard/argo.*'
-  grep -q "dashboard/nezha\..*" <<< "\$FILE_LIST" && EXCLUDE[3]=--exclude='dashboard/nezha.*'
-  grep -q "dashboard/data/config.yaml" <<< "\$FILE_LIST" && EXCLUDE[4]=--exclude='dashboard/data/config.yaml'
-  tar xzvf /tmp/backup.tar.gz \${EXCLUDE[*]} -C /
+
+  # 容器版的备份旧方案是 /dashboard 文件夹，新方案是备份工作目录 < WORK_DIR > 下的文件，此判断用于根据压缩包里的目录架构判断到哪个目录下解压，以兼容新旧备份方案
+  tar tzf /tmp/backup.tar.gz | grep -q '^dashboard' && tar xzvf /tmp/backup.tar.gz -C / dashboard/resource dashboard/data/sqlite.db || tar xzvf /tmp/backup.tar.gz -C /dashboard resource data/sqlite.db
+
+  echo "\$ONLINE" > /dashboard/dbfile
   rm -f /tmp/backup.tar.gz
   hint "\n\$(supervisorctl start agent nezha grpcwebproxy)\n"; sleep 2
 fi
@@ -199,8 +206,12 @@ EOF
   # 生成定时任务，每天北京时间 4:00:00 备份一次，并重启 cron 服务; 每分钟自动检测在线备份文件里的内容
   grep -q '/dashboard/backup.sh' /etc/crontab || echo "0 4 * * * root bash /dashboard/backup.sh a" >> /etc/crontab
   grep -q '/dashboard/restore.sh' /etc/crontab || echo "* * * * * root bash /dashboard/restore.sh a" >> /etc/crontab
-  service cron restart
+  service cron reload
 fi
+
+# 记录现在面板二进制文件版本,及用于判断还原备份文件
+wget -qO- https://raw.githubusercontent.com/fscarmen2/Argo-Nezha-Service-Container/main/app/README.md | awk '/Image/{print $NF}' > /dashboard/version
+touch /dashboard/dbfile
 
 # 生成 supervisor 进程守护配置文件
 cat > /etc/supervisor/conf.d/damon.conf << EOF
@@ -210,7 +221,7 @@ logfile=/dev/null
 pidfile=/run/supervisord.pid
 
 [program:grpcwebproxy]
-command=grpcwebproxy --server_tls_cert_file=/dashboard/nezha.pem --server_tls_key_file=/dashboard/nezha.key --server_http_tls_port=443 --backend_addr=localhost:5555 --backend_tls_noverify --server_http_max_read_timeout=300s --server_http_max_write_timeout=300s
+command=/dashboard/grpcwebproxy --server_tls_cert_file=/dashboard/nezha.pem --server_tls_key_file=/dashboard/nezha.key --server_http_tls_port=443 --backend_addr=localhost:5555 --backend_tls_noverify --server_http_max_read_timeout=300s --server_http_max_write_timeout=300s
 autostart=true
 autorestart=true
 stderr_logfile=/dev/null
@@ -224,22 +235,22 @@ stderr_logfile=/dev/null
 stdout_logfile=/dev/null
 
 [program:agent]
-command=nezha-agent -s localhost:5555 -p abcdefghijklmnopqr
+command=/dashboard/nezha-agent -s localhost:5555 -p abcdefghijklmnopqr
 autostart=true
 autorestart=true
 stderr_logfile=/dev/null
 stdout_logfile=/dev/null
 
 [program:argo]
-command=$ARGO_RUN
+command=/dashboard/$ARGO_RUN
 autostart=true
 autorestart=true
 stderr_logfile=/dev/null
 stdout_logfile=/dev/null
 EOF
 
-# 赋执行权给 sh  文件
-chmod +x /dashboard/*.sh
+# 赋执行权给 sh 及所有应用
+chmod +x /dashboard/{grpcwebproxy,cloudflared,nezha-agent,*.sh}
 
 # 运行 supervisor 进程守护
 supervisord -c /etc/supervisor/supervisord.conf

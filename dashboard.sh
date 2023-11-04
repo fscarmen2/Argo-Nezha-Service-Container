@@ -87,7 +87,7 @@ C[35]="请在 Cloudnflare Tunnel 里增加两个 Public hostnames: \\\n 1. -----
 E[36]="Install applexad's VPS version (modified from official version) (https://github.com/applexad/nezhascript)"
 C[36]="安装 applexad 的官方修改 VPS 版 (https://github.com/applexad/nezhascript)"
 E[37]="Install Nezha's official docker version (https://github.com/naiba/nezha)"
-C[37]="安装哪吒官方的镜像版 (https://github.com/naiba/nezha)"
+C[37]="安装哪吒官方容器版 (https://github.com/naiba/nezha)"
 E[38]="Downloading. Please wait a minute."
 C[38]="下载中, 请稍等"
 
@@ -168,7 +168,13 @@ cmd_systemctl() {
   local ENABLE_DISABLE=$1
   if [ "$ENABLE_DISABLE" = 'enable' ]; then
     if [ "$SYSTEM" = 'Alpine' ]; then
-      systemctl start nezha-dashboard
+      local TRY=5
+      until [ $(systemctl is-active nezha-dashboard) = 'active' ]; do
+        systemctl stop nezha-dashboard; sleep 1
+        systemctl start nezha-dashboard
+        ((TRY--))
+        [ "$TRY" = 0 ] && break
+      done
       cat > /etc/local.d/nezha-dashboard.start << EOF
 #!/usr/bin/env bash
 
@@ -434,7 +440,13 @@ cmd_systemctl() {
   local ENABLE_DISABLE=\$1
   if [ "\$ENABLE_DISABLE" = 'enable' ]; then
     if [ "\$SYSTEM" = 'Alpine' ]; then
-      systemctl start nezha-dashboard
+      local TRY=5
+      until [ \$(systemctl is-active nezha-dashboard) = 'active' ]; do
+        systemctl stop nezha-dashboard; sleep 1
+        systemctl start nezha-dashboard
+        ((TRY--))
+        [ "\$TRY" = 0 ] && break
+      done
       cat > /etc/local.d/nezha-dashboard.start << ABC
 #!/usr/bin/env bash
 
@@ -491,11 +503,10 @@ if [ "\$(systemctl is-active nezha-dashboard)" = 'inactive' ]; then
     wget -O ${WORK_DIR}/app https://github.com/applexad/nezha-binary-build/releases/latest/download/dashboard-\$DASHBOARD_ARCH
   fi
 
-  cd /tmp
   TIME=\$(date "+%Y-%m-%d-%H:%M:%S")
-  tar czvf \$GH_REPO/dashboard-\$TIME.tar.gz $WORK_DIR/resource $WORK_DIR/data/sqlite.db
+  tar czvf /tmp/\$GH_REPO/dashboard-\$TIME.tar.gz resource data/sqlite.db
 
-  cd \$GH_REPO
+  cd /tmp/\$GH_REPO
   [ -e ./.git/index.lock ] && rm -f ./.git/index.lock
   echo "dashboard-\$TIME.tar.gz" > README.md
   find ./ -name '*.gz' | sort | head -n -5 | xargs rm -f
@@ -532,7 +543,13 @@ cmd_systemctl() {
   local ENABLE_DISABLE=\$1
   if [ "\$ENABLE_DISABLE" = 'enable' ]; then
     if [ "\$SYSTEM" = 'Alpine' ]; then
-      systemctl start nezha-dashboard
+      local TRY=5
+      until [ \$(systemctl is-active nezha-dashboard) = 'active' ]; do
+        systemctl stop nezha-dashboard; sleep 1
+        systemctl start nezha-dashboard
+        ((TRY--))
+        [ "\$TRY" = 0 ] && break
+      done
       cat > /etc/local.d/nezha-dashboard.start << ABC
 #!/usr/bin/env bash
 
@@ -580,7 +597,10 @@ wget --header="Authorization: token \$GH_PAT" --header='Accept: application/vnd.
 if [ -e /tmp/backup.tar.gz ]; then
   hint "\n Stop Nezha-dashboard \n"
   cmd_systemctl disable
-  tar xzvf /tmp/backup.tar.gz -C / opt/nezha/dashboard/resource opt/nezha/dashboard/data/sqlite.db
+
+  # 容器版的备份旧方案是 /dashboard 文件夹，新方案是备份工作目录 < WORK_DIR > 下的文件，此判断用于根据压缩包里的目录架构判断到哪个目录下解压，以兼容新旧备份方案
+  tar tzf /tmp/backup.tar.gz | grep -q '^dashboard' && tar xzvf /tmp/backup.tar.gz -C $WORK_DIR/.. dashboard/resource dashboard/data/sqlite.db || tar xzvf /tmp/backup.tar.gz -C $WORK_DIR resource data/sqlite.db
+
   echo "\$ONLINE" > $WORK_DIR/dbfile
   rm -f /tmp/backup.tar.gz
   hint "\n Start Nezha-dashboard \n"
