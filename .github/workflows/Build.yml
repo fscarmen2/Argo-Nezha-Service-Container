@@ -5,8 +5,11 @@ on:
 #  push:
 #    branches:
 #      - main
-  schedule:
-    - cron: 0 16 * * *
+  workflow_run:
+    workflows: ["Renew nezha dash app"]
+    branches: [main]
+    types:
+      - completed
 
 jobs:
   Building:

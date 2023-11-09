@@ -43,10 +43,10 @@ E[14]="If you need to back up your database to Github regularly, please enter th
 C[14]="如需要定时把数据库备份到 Github，请输入 Github 私库名，否则请留空:"
 E[15]="Please enter the Github username for the database \(default \$GH_USER\):"
 C[15]="请输入数据库的 Github 用户名 \(默认 \$GH_USER\):"
-E[16]="Please enter a Github PAT:"
-C[16]="请输入 Github PAT:"
-E[17]="Downloading the \${FAILED[*]} failed. Installation aborted. Feedback: [https://github.com/fscarmen2/Argo-Nezha-Service-Container/issues]"
-C[17]="下载 \${FAILED[*]} 失败，安装中止，问题反馈:[https://github.com/fscarmen2/Argo-Nezha-Service-Container/issues]"
+E[16]="Please enter the Github Email for the database:"
+C[16]="请输入数据库的 Github Email:"
+E[17]="Please enter a Github PAT:"
+C[17]="请输入 Github PAT:"
 E[18]="There are variables that are not set. Installation aborted. Feedback: [https://github.com/fscarmen2/Argo-Nezha-Service-Container/issues]"
 C[18]="参数不齐，安装中止，问题反馈:[https://github.com/fscarmen2/Argo-Nezha-Service-Container/issues]"
 E[19]="Exit"
@@ -83,13 +83,14 @@ E[34]="Important!!! Please turn on gRPC at the Network of the relevant Cloudflar
 C[34]="重要!!! 请到 Cloudflare 相关域名的 Network 处打开 gRPC 功能，否则客户端数据不通!具体可参照教程: [https://github.com/fscarmen2/Argo-Nezha-Service-Container]"
 E[35]="Please add two Public hostnames to Cloudnflare Tunnel: \\\n 1. ------------------------ \\\n Public hostname: \$ARGO_DOMAIN \\\n Path: proto.NezhaService \\\n Type: HTTPS \\\n URL: localhost:\$GRPC_PROXY_PORT \\\n Additional application settings ---\> TLS: Enable [No TLS Verify] and [HTTP2 connection] \\\n\\\n 2. ------------------------ \\\n Public hostname: \$ARGO_DOMAIN \\\n Type: HTTP \\\n URL: localhost:\$WEB_PORT"
 C[35]="请在 Cloudnflare Tunnel 里增加两个 Public hostnames: \\\n 1. ------------------------ \\\n Public hostname: \$ARGO_DOMAIN \\\n Path: proto.NezhaService \\\n Type: HTTPS \\\n URL: localhost:\$GRPC_PROXY_PORT \\\n Additional application settings ---\> TLS: 开启 [No TLS Verify] 和 [HTTP2 connection] 这两处功能 \\\n\\\n 2. ------------------------ \\\n Public hostname: \$ARGO_DOMAIN \\\n Type: HTTP \\\n URL: localhost:\$WEB_PORT"
-
 E[36]="Install applexad's VPS version (modified from official version) (https://github.com/applexad/nezhascript)"
 C[36]="安装 applexad 的官方修改 VPS 版 (https://github.com/applexad/nezhascript)"
 E[37]="Install Nezha's official docker version (https://github.com/naiba/nezha)"
 C[37]="安装哪吒官方容器版 (https://github.com/naiba/nezha)"
 E[38]="Downloading. Please wait a minute."
 C[38]="下载中, 请稍等"
+E[39]="Downloading the \${FAILED[*]} failed. Installation aborted. Feedback: [https://github.com/fscarmen2/Argo-Nezha-Service-Container/issues]"
+C[39]="下载 \${FAILED[*]} 失败，安装中止，问题反馈:[https://github.com/fscarmen2/Argo-Nezha-Service-Container/issues]"
 
 # 自定义字体彩色，read 函数
 warning() { echo -e "\033[31m\033[01m$*\033[0m"; }  # 红色
@@ -263,12 +264,12 @@ certificate() {
 }
 
 dashboard_variables() {
-  [ -z "$GH_USER"] && reading " (1/8) $(text 9) " GH_USER
-  [ -z "$GH_CLIENTID"] && reading "\n (2/8) $(text 10) " GH_CLIENTID
-  [ -z "$GH_CLIENTSECRET"] && reading "\n (3/8) $(text 11) " GH_CLIENTSECRET
+  [ -z "$GH_USER"] && reading " (1/9) $(text 9) " GH_USER
+  [ -z "$GH_CLIENTID"] && reading "\n (2/9) $(text 10) " GH_CLIENTID
+  [ -z "$GH_CLIENTSECRET"] && reading "\n (3/9) $(text 11) " GH_CLIENTSECRET
   local a=5
   until [[ "$ARGO_AUTH" =~ TunnelSecret || "$ARGO_AUTH" =~ ^[A-Z0-9a-z=]{120,250}$ || "$ARGO_AUTH" =~ .*cloudflared.*service[[:space:]]+install[[:space:]]+[A-Z0-9a-z=]{1,100} ]]; do
-    [ "$a" = 0 ] && error "\n $(text 3) \n" || reading "\n (4/8) $(text 12) " ARGO_AUTH
+    [ "$a" = 0 ] && error "\n $(text 3) \n" || reading "\n (4/9) $(text 12) " ARGO_AUTH
     if [[ "$ARGO_AUTH" =~ TunnelSecret ]]; then
       ARGO_JSON=${ARGO_AUTH//[ ]/}
     elif [[ "$ARGO_AUTH" =~ ^[A-Z0-9a-z=]{120,250}$ ]]; then
@@ -282,17 +283,18 @@ dashboard_variables() {
   done
 
   # 处理可能输入的错误，去掉开头和结尾的空格，去掉最后的 :
-  [ -z "$ARGO_DOMAIN"] && reading "\n (5/8) $(text 13) " ARGO_DOMAIN
+  [ -z "$ARGO_DOMAIN"] && reading "\n (5/9) $(text 13) " ARGO_DOMAIN
   ARGO_DOMAIN=$(sed 's/[ ]*//g; s/:[ ]*//' <<< "$ARGO_DOMAIN")
   { certificate; }&
 
   [[ -z "$GH_USER" || -z "$GH_CLIENTID" || -z "$GH_CLIENTSECRET" || -z "$ARGO_AUTH" || -z "$ARGO_DOMAIN" ]] && error "\n $(text 18) "
 
-  [ -z "$GH_REPO"] && reading "\n (6/8) $(text 14) " GH_REPO
+  [ -z "$GH_REPO"] && reading "\n (6/9) $(text 14) " GH_REPO
   if [ -n "$GH_REPO" ]; then
     reading "\n (7/8) $(text 15) " GH_BACKUP_USER
     GH_BACKUP_USER=${GH_BACKUP_USER:-$GH_USER}
-    [ -z "$GH_PAT"] && reading "\n (8/8) $(text 16) " GH_PAT
+    [ -z "$GH_EMAIL"] && reading "\n (8/9) $(text 16) " GH_EMAIL
+    [ -z "$GH_PAT"] && reading "\n (9/9) $(text 17) " GH_PAT
   fi
 }
 
@@ -309,7 +311,7 @@ install() {
   for f in ${TEMP_DIR}/{cloudflared,grpcwebproxy,app,resource,nezha.key,nezha.csr,nezha.pem}; do
     [ ! -s "$f" ] && FAILED+=("${f//${TEMP_DIR}\//}")
   done
-  [ "${#FAILED[@]}" -gt 0 ] && error "\n $(text 17) "
+  [ "${#FAILED[@]}" -gt 0 ] && error "\n $(text 39) "
 
   # 从临时文件夹复制已下载的所有到工作文件夹
   [ ! -d ${WORK_DIR}/data ] && mkdir -p ${WORK_DIR}/data
@@ -419,19 +421,22 @@ RestartSec=5s
 WantedBy=multi-user.target
 EOF
 
-  # 生成备份和恢复脚本
-  if [[ -n "$GH_BACKUP_USER" && -n "$GH_REPO" && -n "$GH_PAT" ]]; then
-
-    # 生成定时备份数据库脚本，定时任务，删除 30 天前的备份
-    cat > ${WORK_DIR}/backup.sh << EOF
+  # 生成定时备份数据库脚本，定时任务，删除 5 天前的备份
+  cat > ${WORK_DIR}/backup.sh << EOF
 #!/usr/bin/env bash
+
+# backup.sh 传参 a 自动还原； 传参 m 手动还原； 传参 f 强制更新面板 app 文件及 cloudflared 文件，并备份数据至成备份库
 
 GH_PAT=$GH_PAT
 GH_BACKUP_USER=$GH_BACKUP_USER
+GH_EMAIL=$GH_EMAIL
 GH_REPO=$GH_REPO
 SYSTEM=$SYSTEM
 DASHBOARD_ARCH=$DASHBOARD_ARCH
+ARCH=$ARCH
+WORK_DIR=$WORK_DIR
 
+warning() { echo -e "\033[31m\033[01m\$*\033[0m"; }  # 红色
 error() { echo -e "\033[31m\033[01m\$*\033[0m" && exit 1; } # 红色
 info() { echo -e "\033[32m\033[01m\$*\033[0m"; }   # 绿色
 hint() { echo -e "\033[33m\033[01m\$*\033[0m"; }   # 黄色
@@ -468,73 +473,112 @@ ABC
   fi
 }
 
-IS_PRIVATE="\$(wget -qO- --header="Authorization: token \$GH_PAT" https://api.github.com/repos/\$GH_BACKUP_USER/\$GH_REPO | sed -n '/"private":/s/.*:[ ]*\([^,]*\),/\1/gp')"
-if [ "\$?" != 0 ]; then
-  error "\n Could not connect to Github. Stop backup. \n"
-elif [ "\$IS_PRIVATE" != true ]; then
-  error "\n This is not exist nor a private repository and the script exits. \n"
+# 手自动标志
+[ "\$1" = 'a' ] && WAY=Scheduled || WAY=Manualed
+[ "\$1" = 'f' ] && WAY=Manualed && FORCE_UPDATE=true
+
+# 检查更新面板主程序 app 及 cloudflared
+cd \$WORK_DIR
+DASHBOARD_NOW=\$(./app -v)
+DASHBOARD_LATEST=\$(wget -qO- "https://api.github.com/repos/applexad/nezha-binary-build/releases/latest" | awk -F '"' '/"tag_name"/{print \$4}')
+[[ "\$DASHBOARD_LATEST" =~ ^v([0-9]{1,3}\.){2}[0-9]{1,3}\$ && "\$DASHBOARD_NOW" != "\$DASHBOARD_LATEST" ]] && DASHBOARD_UPDATE=true
+
+CLOUDFLARED_NOW=\$(./cloudflared -v | awk '{for (i=0; i<NF; i++) if (\$i=="version") {print \$(i+1)}}')
+CLOUDFLARED_LATEST=\$(wget -qO- https://api.github.com/repos/cloudflare/cloudflared/releases/latest | awk -F '"' '/tag_name/{print \$4}')
+[[ "\$CLOUDFLARED_LATEST" =~ ^20[0-9]{2}\.[0-9]{1,2}\.[0-9]+\$ && "\$CLOUDFLARED_NOW" != "\$CLOUDFLARED_LATEST" ]] && CLOUDFLARED_UPDATE=true
+
+# 检测是否有设置备份数据
+if [[ -n "\$GH_REPO" && -n "\$GH_BACKUP_USER" && -n "\$GH_EMAIL" && -n "\$GH_PAT" ]]; then
+  IS_PRIVATE="\$(wget -qO- --header="Authorization: token \$GH_PAT" https://api.github.com/repos/\$GH_BACKUP_USER/\$GH_REPO | sed -n '/"private":/s/.*:[ ]*\([^,]*\),/\1/gp')"
+  if [ "\$?" != 0 ]; then
+    warning "\n Could not connect to Github. Stop backup. \n"
+  elif [ "\$IS_PRIVATE" != true ]; then
+    warning "\n This is not exist nor a private repository. \n"
+  else
+    IS_BACKUP=true
+  fi
 fi
 
-[ -n "\$1" ] && WAY=Scheduled || WAY=Manualed
+# 分步骤处理
+if [[ "\${DASHBOARD_UPDATE}\${CLOUDFLARED_UPDATE}\${IS_BACKUP}\${FORCE_UPDATE}" =~ true ]]; then
+  # 停掉面板才能备份
+  hint "\n stop Nezha-dashboard \n"
+  cmd_systemctl disable
+  sleep 2
+  if [ "\$(systemctl is-active nezha-dashboard)" = 'inactive' ]; then
+    # 更新面板和 resource
+    if [[ "\${DASHBOARD_UPDATE}\${FORCE_UPDATE}" =~ 'true' ]]; then
+      hint "\n Renew dashboard app to \$DASHBOARD_LATEST \n"
+      wget -O \$WORK_DIR/app \${GH_PROXY}https://github.com/applexad/nezha-binary-build/releases/latest/download/dashboard-\$DASHBOARD_ARCH
+      wget -c \${GH_PROXY}https://github.com/applexad/nezha-binary-build/releases/latest/download/resource.tar.gz -qO- | tar xvz -C \$WORK_DIR
+    fi
 
-# 停掉面板才能备份
-hint "\n stop Nezha-dashboard \n"
-cmd_systemctl disable
-sleep 2
+    # 更新 cloudflared
+    if [[ "\${CLOUDFLARED_UPDATE}\${FORCE_UPDATE}" =~ 'true' ]]; then
+      hint "\n Renew Cloudflared to \$CLOUDFLARED_LATEST \n"
+      wget -O \$WORK_DIR/cloudflared \${GH_PROXY}https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-\$ARCH && chmod +x \$WORK_DIR/cloudflared
+    fi
 
-# 设置 git 环境变量，减少系统开支
-git config --global core.bigFileThreshold 1k
-git config --global core.compression 0
-git config --global advice.detachedHead false
-git config --global pack.threads 1
-git config --global pack.windowMemory 50m
+    # 克隆备份仓库，压缩备份文件，上传更新
+    if [ "\$IS_BACKUP" = 'true' ]; then
+      # 设置 git 环境变量，减少系统开支
+      git config --global core.bigFileThreshold 1k
+      git config --global core.compression 0
+      git config --global advice.detachedHead false
+      git config --global pack.threads 1
+      git config --global pack.windowMemory 50m
 
-# 克隆现有备份库
-[ -d /tmp/\$GH_REPO ] && rm -rf /tmp/\$GH_REPO
-git clone https://\$GH_PAT@github.com/\$GH_BACKUP_USER/\$GH_REPO.git --depth 1 --quiet /tmp/\$GH_REPO
+      # 克隆现有备份库
+      [ -d /tmp/\$GH_REPO ] && rm -rf /tmp/\$GH_REPO
+      git clone https://\$GH_PAT@github.com/\$GH_BACKUP_USER/\$GH_REPO.git --depth 1 --quiet /tmp/\$GH_REPO
 
-# 检查更新面板主程序 app，然后 github 备份数据库，最后重启面板
-if [ "\$(systemctl is-active nezha-dashboard)" = 'inactive' ]; then
-  cd $WORK_DIR
-  [ -s $WORK_DIR/app ] && NOW=\$(./app -v)
-  LATEST=\$(wget -qO- "https://api.github.com/repos/applexad/nezha-binary-build/releases/latest" | awk -F '"' '/"tag_name"/{print \$4}')
-  if [[ "\$LATEST" =~ ^v([0-9]{1,3}\.){2}[0-9]{1,3}\$ && "\$NOW" != "\$LATEST" ]]; then
-    hint "\n Renew dashboard app to \$LATEST \n"
-    wget -O ${WORK_DIR}/app https://github.com/applexad/nezha-binary-build/releases/latest/download/dashboard-\$DASHBOARD_ARCH
+      # 压缩备份数据，只备份 data/ 目录下的 config.yaml 和 sqlite.db； resource/ 目录下名字有 custom 的自定义主题文件夹
+      TIME=\$(date "+%Y-%m-%d-%H:%M:%S")
+      echo "↓↓↓↓↓↓↓↓↓↓ dashboard-\$TIME.tar.gz list ↓↓↓↓↓↓↓↓↓↓"
+      find resource/ -type d -name "*custom*" | tar czvf /tmp/\$GH_REPO/dashboard-\$TIME.tar.gz -T- data/
+      echo -e "↑↑↑↑↑↑↑↑↑↑ dashboard-\$TIME.tar.gz list ↑↑↑↑↑↑↑↑↑↑\n\n"
+
+      # 更新备份 Github 库
+      cd /tmp/\$GH_REPO
+      [ -e ./.git/index.lock ] && rm -f ./.git/index.lock
+      echo "dashboard-\$TIME.tar.gz" > README.md
+      find ./ -name '*.gz' | sort | head -n -5 | xargs rm -f
+      git config --global user.name \$GH_BACKUP_USER
+      git config --global user.email \$GH_EMAIL
+      git checkout --orphan tmp_work
+      git add .
+      git commit -m "\$WAY at \$TIME ."
+      git push -f -u origin HEAD:main --quiet
+      IS_BACKUP="\$?"
+      cd ..
+      rm -rf \$GH_REPO
+      [ "\$IS_BACKUP" = 0 ] && echo "dashboard-\$TIME.tar.gz" > \$WORK_DIR/dbfile && info "\n Succeed to upload the backup files dashboard-\$TIME.tar.gz to Github.\n" || hint "\n Failed to upload the backup files dashboard-\$TIME.tar.gz to Github.\n"
+      hint "\n Start Nezha-dashboard \n"
+    fi
   fi
 
-  TIME=\$(date "+%Y-%m-%d-%H:%M:%S")
-  tar czvf /tmp/\$GH_REPO/dashboard-\$TIME.tar.gz resource data/sqlite.db
-
-  cd /tmp/\$GH_REPO
-  [ -e ./.git/index.lock ] && rm -f ./.git/index.lock
-  echo "dashboard-\$TIME.tar.gz" > README.md
-  find ./ -name '*.gz' | sort | head -n -5 | xargs rm -f
-  git config --global user.name \$GH_BACKUP_USER
-  git checkout --orphan tmp_work
-  git add .
-  git commit -m "\$WAY at \$TIME ."
-  git push -f -u origin HEAD:main --quiet
-  IS_BACKUP="\$?"
-  cd ..
-  rm -rf \$GH_REPO
-  [ "\$IS_BACKUP" = 0 ] && echo "dashboard-\$TIME.tar.gz" > $WORK_DIR/dbfile && info "\n Succeed to upload the backup files dashboard-\$TIME.tar.gz to Github.\n" || hint "\n Failed to upload the backup files dashboard-\$TIME.tar.gz to Github.\n"
-  hint "\n Start Nezha-dashboard \n"
+  # 重启面板
   cmd_systemctl enable >/dev/null 2>&1; sleep 2
 fi
 
 [ "\$(systemctl is-active nezha-dashboard)" = 'active' ] && info "\n Done! \n" || error "\n Fail! \n"
 EOF
 
+  if [[ -n "$GH_BACKUP_USER" && -n "$GH_REPO" && -n "$GH_PAT" ]]; then
     # 生成还原数据脚本
+    touch ${WORK_DIR}/dbfile
     cat > ${WORK_DIR}/restore.sh << EOF
 #!/usr/bin/env bash
+
+# restore.sh 传参 a 自动还原 README.md 记录的文件，当本地与远程记录文件一样时不还原； 传参 f 不管本地记录文件，强制还原成备份库里 README.md 记录的文件； 传参 dashboard-***.tar.gz 还原成备份库里的该文件；不带参数则要求选择备份库里的文件名
 
 GH_PAT=$GH_PAT
 GH_BACKUP_USER=$GH_BACKUP_USER
 GH_REPO=$GH_REPO
 SYSTEM=$SYSTEM
+WORK_DIR=$WORK_DIR
 
+warning() { echo -e "\033[31m\033[01m\$*\033[0m"; }  # 红色
 error() { echo -e "\033[31m\033[01m\$*\033[0m" && exit 1; } # 红色
 info() { echo -e "\033[32m\033[01m\$*\033[0m"; }   # 绿色
 hint() { echo -e "\033[33m\033[01m\$*\033[0m"; }   # 黄色
@@ -573,38 +617,69 @@ ABC
 
 ONLINE="\$(wget -qO- --header="Authorization: token \$GH_PAT" "https://raw.githubusercontent.com/\$GH_BACKUP_USER/\$GH_REPO/main/README.md" | sed "/^$/d" | head -n 1)"
 
+# 读取面板现配置信息
+CONFIG_HTTPPORT=\$(grep '^httpport:' \$WORK_DIR/data/config.yaml)
+CONFIG_LANGUAGE=\$(grep '^language:' \$WORK_DIR/data/config.yaml)
+CONFIG_GRPCPORT=\$(grep '^grpcport:' \$WORK_DIR/data/config.yaml)
+CONFIG_GRPCHOST=\$(grep '^grpchost:' \$WORK_DIR/data/config.yaml)
+CONFIG_PROXYGRPCPORT=\$(grep '^proxygrpcport:' \$WORK_DIR/data/config.yaml)
+CONFIG_TYPE=\$(sed -n '/type:/s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml)
+CONFIG_ADMIN=\$(sed -n '/admin:/s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml)
+CONFIG_CLIENTID=\$(sed -n '/clientid:/s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml)
+CONFIG_CLIENTSECRET=\$(sed -n '/clientsecret:/s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml)
+
+# 如 dbfile 不为空，即不是首次安装，记录当前面板的主题等信息
+[ -s \$WORK_DIR/dbfile ] && CONFIG_BRAND=\$(sed -n '/brand:/s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml) &&
+CONFIG_COOKIENAME=\$(sed -n '/cookiename:/s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml) &&
+CONFIG_THEME=\$(sed -n '/theme:/s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml)
+
 if [ "\$1" = a ]; then
-  [ "\$ONLINE" = "\$(cat $WORK_DIR/dbfile)" ] && exit
-  [[ "\$ONLINE" =~ tar\.gz$ && "\$ONLINE" != "\$(cat $WORK_DIR/dbfile)" ]] && FILE="\$ONLINE" || exit
+  [ "\$ONLINE" = "\$(cat \$WORK_DIR/dbfile)" ] && exit
+  [[ "\$ONLINE" =~ tar\.gz$ && "\$ONLINE" != "\$(cat \$WORK_DIR/dbfile)" ]] && FILE="\$ONLINE" || exit
+elif [ "\$1" = f ]; then
+  [[ "\$ONLINE" =~ tar\.gz$ ]] && FILE="\$ONLINE" || exit
 elif [[ "\$1" =~ tar\.gz$ ]]; then
-  FILE="\$1"
-fi
-
-until [[ -n "\$FILE" || "\$i" = 5 ]]; do
-  [ -z "\$FILE" ] && read -rp ' Please input the backup file name (*.tar.gz): ' FILE
-  ((i++)) || true
-done
-
-if [ -n "\$FILE" ]; then
-  [[ "\$FILE" =~ http.*/.*tar.gz ]] && FILE=\$(awk -F '/' '{print \$NF}' <<< \$FILE)
-else
-  error "\n The input has failed more than 5 times and the script exits. \n"
+  [[ "\$FILE" =~ http.*/.*tar.gz ]] && FILE=\$(awk -F '/' '{print \$NF}' <<< \$FILE) || FILE="\$1"
+elif [ -z "\$1" ]; then
+  BACKUP_FILE_LIST=(\$(wget -qO- --header="Authorization: token \$GH_PAT" https://api.github.com/repos/\$GH_BACKUP_USER/\$GH_REPO/contents/ | awk -F '"' '/"path".*tar.gz/{print \$4}' | sort -r))
+  until [[ "\$CHOOSE" =~ ^[1-\${#BACKUP_FILE_LIST[@]}]$ ]]; do
+    for i in \${!BACKUP_FILE_LIST[@]}; do echo " \$[i+1]. \${BACKUP_FILE_LIST[i]} "; done
+    echo ""
+    [ -z "\$FILE" ] && read -rp " Please choose the backup file [1-\${#BACKUP_FILE_LIST[@]}]: " CHOOSE
+    [[ ! "\$CHOOSE" =~ ^[1-\${#BACKUP_FILE_LIST[@]}]$ ]] && echo -e "\n Error input!" && sleep 1
+    ((j++)) && [ \$j -ge 5 ] && error "\n The choose has failed more than 5 times and the script exits. \n"
+  done
+  FILE=\${BACKUP_FILE_LIST[\$((CHOOSE-1))]}
 fi
 
 DOWNLOAD_URL=https://raw.githubusercontent.com/\$GH_BACKUP_USER/\$GH_REPO/main/\$FILE
 wget --header="Authorization: token \$GH_PAT" --header='Accept: application/vnd.github.v3.raw' -O /tmp/backup.tar.gz "\$DOWNLOAD_URL"
 
 if [ -e /tmp/backup.tar.gz ]; then
-  hint "\n Stop Nezha-dashboard \n"
-  cmd_systemctl disable
+  hint "\n Stop Nezha-dashboard \n" && cmd_systemctl disable
 
   # 容器版的备份旧方案是 /dashboard 文件夹，新方案是备份工作目录 < WORK_DIR > 下的文件，此判断用于根据压缩包里的目录架构判断到哪个目录下解压，以兼容新旧备份方案
-  tar tzf /tmp/backup.tar.gz | grep -q '^dashboard' && tar xzvf /tmp/backup.tar.gz -C $WORK_DIR/.. dashboard/resource dashboard/data/sqlite.db || tar xzvf /tmp/backup.tar.gz -C $WORK_DIR resource data/sqlite.db
+  FILE_LIST=\$(tar tzf /tmp/backup.tar.gz)
+  FILE_PATH=\$(sed -n 's#\(.*/\)data/sqlite\.db.*#\1#gp' <<< "\$FILE_LIST")
 
-  echo "\$ONLINE" > $WORK_DIR/dbfile
+  # 判断备份文件里是否有用户自定义主题，如有则一并解压
+  CUSTOM_PATH=(\$(sed -n "/-custom/s#\$FILE_PATH\(.*-custom\)/.*#\1#gp" <<< "\$FILE_LIST" | sort -u))
+  [ \${#CUSTOM_PATH[@]} -gt 0 ] && CUSTOM_FULL_PATH=(\$(for k in \${CUSTOM_PATH[@]}; do echo \${FILE_PATH}\${k}; done))
+  echo "↓↓↓↓↓↓↓↓↓↓ Restore-file list ↓↓↓↓↓↓↓↓↓↓"
+  tar xzvf /tmp/backup.tar.gz -C \$WORK_DIR \${CUSTOM_FULL_PATH[@]} \${FILE_PATH}data
+  echo -e "↑↑↑↑↑↑↑↑↑↑ Restore-file list ↑↑↑↑↑↑↑↑↑↑\n\n"
+
+  # 还原面板配置的最新信息
+  sed -i "s@httpport:.*@\$CONFIG_HTTPPORT@; s@language:.*@\$CONFIG_LANGUAGE@; s@^grpcport:.*@\$CONFIG_GRPCPORT@; s@grpchost:.*@\$CONFIG_GRPCHOST@; s@proxygrpcport:.*@\$CONFIG_PROXYGRPCPORT@; s@type:.*@\$CONFIG_TYPE@; s@admin:.*@\$CONFIG_ADMIN@; s@clientid:.*@\$CONFIG_CLIENTID@; s@clientsecret:.*@\$CONFIG_CLIENTSECRET@" \$WORK_DIR/data/config.yaml
+
+  # 逻辑是安装首次使用备份文件里的主题信息，之后使用本地最新的主题信息
+  [[ -n "\$CONFIG_BRAND && -n "\$CONFIG_COOKIENAME && -n "\$CONFIG_THEME" ]] &&
+  sed -i "s@brand:.*@\$CONFIG_BRAND@; s@cookiename:.*@\$CONFIG_COOKIENAME@; s@theme:.*@\$CONFIG_THEME@" \$WORK_DIR/data/config.yaml
+
+  # 在本地记录还原文件名
+  echo "\$ONLINE" > \$WORK_DIR/dbfile
   rm -f /tmp/backup.tar.gz
-  hint "\n Start Nezha-dashboard \n"
-  cmd_systemctl enable >/dev/null 2>&1; sleep 5
+  hint "\n Start Nezha-dashboard \n" && cmd_systemctl enable >/dev/null 2>&1; sleep 5
 fi
 
 [ "\$(systemctl is-active nezha-dashboard)" = 'active' ] && info "\n Done! \n" || error "\n Fail! \n"
