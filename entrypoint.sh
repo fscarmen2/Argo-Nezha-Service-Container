@@ -26,29 +26,24 @@ rm -f $WORK_DIR/nezha-agent.zip
 
 # 根据参数生成哪吒服务端配置文件
 [ ! -d data ] && mkdir data
-cat > $WORK_DIR/data/config.yaml << EOF
+cat > ${WORK_DIR}/data/config.yaml << EOF
 debug: false
-site:
-  brand: Nezha Probe
-  cookiename: nezha-dashboard
-  theme: default
-  customcode: "<script>\r\nwindow.onload = function(){\r\nvar avatar=document.querySelector(\".item img\")\r\nvar footer=document.querySelector(\"div.is-size-7\")\r\nfooter.innerHTML=\"Powered by $GH_USER\"\r\nfooter.style.visibility=\"visible\"\r\navatar.src=\"https://raw.githubusercontent.com/Orz-3/mini/master/Color/Global.png\"\r\navatar.style.visibility=\"visible\"\r\n}\r\n</script>"
-  viewpassword: ""
-oauth2:
-  type: github
-  admin: $GH_USER
-  clientid: $GH_CLIENTID
-  clientsecret: $GH_CLIENTSECRET
 httpport: 80
+language: zh-CN
 grpcport: 5555
 grpchost: $ARGO_DOMAIN
 proxygrpcport: 443
 tls: true
-enableipchangenotification: false
-enableplainipinnotification: false
-cover: 0
-ignoredipnotification: ""
-ignoredipnotificationserverids: {}
+oauth2:
+  type: "github" #Oauth2 登录接入类型，github/gitlab/jihulab/gitee/gitea ## Argo-容器版本只支持 github
+  admin: "$GH_USER" #管理员列表，半角逗号隔开
+  clientid: "$GH_CLIENTID" # 在 https://github.com/settings/developers 创建，无需审核 Callback 填 http(s)://域名或IP/oauth2/callback
+  clientsecret: "$GH_CLIENTSECRET"
+  endpoint: "" # 如gitea自建需要设置 ## Argo-容器版本只支持 github
+site:
+  brand: "Nezha Probe"
+  cookiename: "nezha-dashboard" #浏览器 Cookie 字段名，可不改
+  theme: "default"
 EOF
 
 # SSH path 与 GH_CLIENTSECRET 一样
@@ -200,6 +195,11 @@ GH_PAT=$GH_PAT
 GH_BACKUP_USER=$GH_BACKUP_USER
 GH_REPO=$GH_REPO
 WORK_DIR=$WORK_DIR
+TEMP_DIR=/tmp/restore_temp
+
+trap "rm -rf \$TEMP_DIR; echo -e '\n' ;exit 1" INT QUIT TERM EXIT
+
+mkdir -p \$TEMP_DIR
 
 warning() { echo -e "\033[31m\033[01m\$*\033[0m"; }  # 红色
 error() { echo -e "\033[31m\033[01m\$*\033[0m" && exit 1; } # 红色
@@ -244,32 +244,37 @@ elif [ -z "\$1" ]; then
 fi
 
 DOWNLOAD_URL=https://raw.githubusercontent.com/\$GH_BACKUP_USER/\$GH_REPO/main/\$FILE
-wget --header="Authorization: token \$GH_PAT" --header='Accept: application/vnd.github.v3.raw' -O /tmp/backup.tar.gz "\$DOWNLOAD_URL"
+wget --header="Authorization: token \$GH_PAT" --header='Accept: application/vnd.github.v3.raw' -O \$TEMP_DIR/backup.tar.gz "\$DOWNLOAD_URL"
 
-if [ -e /tmp/backup.tar.gz ]; then
+if [ -e \$TEMP_DIR/backup.tar.gz ]; then
   hint "\n\$(supervisorctl stop agent nezha grpcwebproxy)\n"
 
   # 容器版的备份旧方案是 /dashboard 文件夹，新方案是备份工作目录 < WORK_DIR > 下的文件，此判断用于根据压缩包里的目录架构判断到哪个目录下解压，以兼容新旧备份方案
-  FILE_LIST=\$(tar tzf /tmp/backup.tar.gz)
-  FILE_PATH=\$(sed -n 's#\(.*/\)data/sqlite\.db.*#\1#gp' <<< "\$FILE_LIST")
+  FILE_LIST=\$(tar tzf \$TEMP_DIR/backup.tar.gz)
+  FILE_PATH=\$(sed -n 's#\(.*/\)data/sqlite\.db.*#\1#gp' <<< "\$FILE_LIST")  
 
-  # 判断备份文件里是否有用户自定义主题，如有则一并解压
+  # 判断备份文件里是否有用户自定义主题，如有则一并解压到临时文件夹
   CUSTOM_PATH=(\$(sed -n "/-custom/s#\$FILE_PATH\(.*-custom\)/.*#\1#gp" <<< "\$FILE_LIST" | sort -u))
   [ \${#CUSTOM_PATH[@]} -gt 0 ] && CUSTOM_FULL_PATH=(\$(for k in \${CUSTOM_PATH[@]}; do echo \${FILE_PATH}\${k}; done))
   echo "↓↓↓↓↓↓↓↓↓↓ Restore-file list ↓↓↓↓↓↓↓↓↓↓"
-  tar xzvf /tmp/backup.tar.gz -C \$WORK_DIR \${CUSTOM_FULL_PATH[@]} \${FILE_PATH}data
+  tar xzvf \$TEMP_DIR/backup.tar.gz -C \$TEMP_DIR \${CUSTOM_FULL_PATH[@]} \${FILE_PATH}data
   echo -e "↑↑↑↑↑↑↑↑↑↑ Restore-file list ↑↑↑↑↑↑↑↑↑↑\n\n"
 
   # 还原面板配置的最新信息
-  sed -i "s@httpport:.*@\$CONFIG_HTTPPORT@; s@language:.*@\$CONFIG_LANGUAGE@; s@^grpcport:.*@\$CONFIG_GRPCPORT@; s@grpchost:.*@\$CONFIG_GRPCHOST@; s@proxygrpcport:.*@\$CONFIG_PROXYGRPCPORT@; s@type:.*@\$CONFIG_TYPE@; s@admin:.*@\$CONFIG_ADMIN@; s@clientid:.*@\$CONFIG_CLIENTID@; s@clientsecret:.*@\$CONFIG_CLIENTSECRET@" \$WORK_DIR/data/config.yaml
+  sed -i "s@httpport:.*@\$CONFIG_HTTPPORT@; s@language:.*@\$CONFIG_LANGUAGE@; s@^grpcport:.*@\$CONFIG_GRPCPORT@; s@grpchost:.*@\$CONFIG_GRPCHOST@; s@proxygrpcport:.*@\$CONFIG_PROXYGRPCPORT@; s@type:.*@\$CONFIG_TYPE@; s@admin:.*@\$CONFIG_ADMIN@; s@clientid:.*@\$CONFIG_CLIENTID@; s@clientsecret:.*@\$CONFIG_CLIENTSECRET@" \${TEMP_DIR}/\${FILE_PATH}data/config.yaml
 
   # 逻辑是安装首次使用备份文件里的主题信息，之后使用本地最新的主题信息
   [[ -n "\$CONFIG_BRAND && -n "\$CONFIG_COOKIENAME && -n "\$CONFIG_THEME" ]] &&
-  sed -i "s@brand:.*@\$CONFIG_BRAND@; s@cookiename:.*@\$CONFIG_COOKIENAME@; s@theme:.*@\$CONFIG_THEME@" \$WORK_DIR/data/config.yaml
+  sed -i "s@brand:.*@\$CONFIG_BRAND@; s@cookiename:.*@\$CONFIG_COOKIENAME@; s@theme:.*@\$CONFIG_THEME@" \${TEMP_DIR}/\${FILE_PATH}data/config.yaml
+
+  # 复制临时文件到正式的工作文件夹
+  cp -f \${TEMP_DIR}/\${FILE_PATH}data/* \${WORK_DIR}/data/
+  [ -d \${TEMP_DIR}/\${FILE_PATH}resource ] && cp -rf \${TEMP_DIR}/\${FILE_PATH}resource \${WORK_DIR}
+  rm -rf \${TEMP_DIR}
 
   # 在本地记录还原文件名
   echo "\$ONLINE" > \$WORK_DIR/dbfile
-  rm -f /tmp/backup.tar.gz
+  rm -f \$TEMP_DIR/backup.tar.gz
   hint "\n\$(supervisorctl start agent nezha grpcwebproxy)\n"; sleep 2
 fi
 
@@ -279,7 +284,7 @@ EOF
   # 生成定时任务，每天北京时间 4:00:00 备份一次，并重启 cron 服务; 每分钟自动检测在线备份文件里的内容
   grep -q "$WORK_DIR/backup.sh" /etc/crontab || echo "0 4 * * * root bash $WORK_DIR/backup.sh a" >> /etc/crontab
   grep -q "$WORK_DIR/restore.sh" /etc/crontab || echo "* * * * * root bash $WORK_DIR/restore.sh a" >> /etc/crontab
-  service cron reload
+  service cron restart
 fi
 
 # 生成 supervisor 进程守护配置文件

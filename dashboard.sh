@@ -577,6 +577,11 @@ GH_BACKUP_USER=$GH_BACKUP_USER
 GH_REPO=$GH_REPO
 SYSTEM=$SYSTEM
 WORK_DIR=$WORK_DIR
+TEMP_DIR=/tmp/restore_temp
+
+trap "rm -rf \$TEMP_DIR; echo -e '\n' ;exit 1" INT QUIT TERM EXIT
+
+mkdir -p \$TEMP_DIR
 
 warning() { echo -e "\033[31m\033[01m\$*\033[0m"; }  # 红色
 error() { echo -e "\033[31m\033[01m\$*\033[0m" && exit 1; } # 红色
@@ -653,32 +658,37 @@ elif [ -z "\$1" ]; then
 fi
 
 DOWNLOAD_URL=https://raw.githubusercontent.com/\$GH_BACKUP_USER/\$GH_REPO/main/\$FILE
-wget --header="Authorization: token \$GH_PAT" --header='Accept: application/vnd.github.v3.raw' -O /tmp/backup.tar.gz "\$DOWNLOAD_URL"
+wget --header="Authorization: token \$GH_PAT" --header='Accept: application/vnd.github.v3.raw' -O \$TEMP_DIR/backup.tar.gz "\$DOWNLOAD_URL"
 
-if [ -e /tmp/backup.tar.gz ]; then
+if [ -e \$TEMP_DIR/backup.tar.gz ]; then
   hint "\n Stop Nezha-dashboard \n" && cmd_systemctl disable
 
   # 容器版的备份旧方案是 /dashboard 文件夹，新方案是备份工作目录 < WORK_DIR > 下的文件，此判断用于根据压缩包里的目录架构判断到哪个目录下解压，以兼容新旧备份方案
-  FILE_LIST=\$(tar tzf /tmp/backup.tar.gz)
+  FILE_LIST=\$(tar tzf \$TEMP_DIR/backup.tar.gz)
   FILE_PATH=\$(sed -n 's#\(.*/\)data/sqlite\.db.*#\1#gp' <<< "\$FILE_LIST")
 
   # 判断备份文件里是否有用户自定义主题，如有则一并解压
   CUSTOM_PATH=(\$(sed -n "/-custom/s#\$FILE_PATH\(.*-custom\)/.*#\1#gp" <<< "\$FILE_LIST" | sort -u))
   [ \${#CUSTOM_PATH[@]} -gt 0 ] && CUSTOM_FULL_PATH=(\$(for k in \${CUSTOM_PATH[@]}; do echo \${FILE_PATH}\${k}; done))
   echo "↓↓↓↓↓↓↓↓↓↓ Restore-file list ↓↓↓↓↓↓↓↓↓↓"
-  tar xzvf /tmp/backup.tar.gz -C \$WORK_DIR \${CUSTOM_FULL_PATH[@]} \${FILE_PATH}data
+  tar xzvf \$TEMP_DIR/backup.tar.gz -C \$TEMP_DIR \${CUSTOM_FULL_PATH[@]} \${FILE_PATH}data
   echo -e "↑↑↑↑↑↑↑↑↑↑ Restore-file list ↑↑↑↑↑↑↑↑↑↑\n\n"
 
   # 还原面板配置的最新信息
-  sed -i "s@httpport:.*@\$CONFIG_HTTPPORT@; s@language:.*@\$CONFIG_LANGUAGE@; s@^grpcport:.*@\$CONFIG_GRPCPORT@; s@grpchost:.*@\$CONFIG_GRPCHOST@; s@proxygrpcport:.*@\$CONFIG_PROXYGRPCPORT@; s@type:.*@\$CONFIG_TYPE@; s@admin:.*@\$CONFIG_ADMIN@; s@clientid:.*@\$CONFIG_CLIENTID@; s@clientsecret:.*@\$CONFIG_CLIENTSECRET@" \$WORK_DIR/data/config.yaml
+  sed -i "s@httpport:.*@\$CONFIG_HTTPPORT@; s@language:.*@\$CONFIG_LANGUAGE@; s@^grpcport:.*@\$CONFIG_GRPCPORT@; s@grpchost:.*@\$CONFIG_GRPCHOST@; s@proxygrpcport:.*@\$CONFIG_PROXYGRPCPORT@; s@type:.*@\$CONFIG_TYPE@; s@admin:.*@\$CONFIG_ADMIN@; s@clientid:.*@\$CONFIG_CLIENTID@; s@clientsecret:.*@\$CONFIG_CLIENTSECRET@" \${TEMP_DIR}/\${FILE_PATH}data/config.yaml
 
   # 逻辑是安装首次使用备份文件里的主题信息，之后使用本地最新的主题信息
   [[ -n "\$CONFIG_BRAND && -n "\$CONFIG_COOKIENAME && -n "\$CONFIG_THEME" ]] &&
-  sed -i "s@brand:.*@\$CONFIG_BRAND@; s@cookiename:.*@\$CONFIG_COOKIENAME@; s@theme:.*@\$CONFIG_THEME@" \$WORK_DIR/data/config.yaml
+  sed -i "s@brand:.*@\$CONFIG_BRAND@; s@cookiename:.*@\$CONFIG_COOKIENAME@; s@theme:.*@\$CONFIG_THEME@" \${TEMP_DIR}/\${FILE_PATH}data/config.yaml
+
+  # 复制临时文件到正式的工作文件夹
+  cp -f \${TEMP_DIR}/\${FILE_PATH}data/* \${WORK_DIR}/data/
+  [ -d \${TEMP_DIR}/\${FILE_PATH}resource ] && cp -rf \${TEMP_DIR}/\${FILE_PATH}resource \${WORK_DIR}
+  rm -rf \${TEMP_DIR}
 
   # 在本地记录还原文件名
   echo "\$ONLINE" > \$WORK_DIR/dbfile
-  rm -f /tmp/backup.tar.gz
+  rm -f \$TEMP_DIR/backup.tar.gz
   hint "\n Start Nezha-dashboard \n" && cmd_systemctl enable >/dev/null 2>&1; sleep 5
 fi
 
@@ -692,7 +702,7 @@ EOF
     else
       grep -q "${WORK_DIR}/backup.sh" /etc/crontab || echo "0 4 * * * root bash ${WORK_DIR}/backup.sh a" >> /etc/crontab
       grep -q "${WORK_DIR}/restore.sh" /etc/crontab || echo "* * * * * root bash ${WORK_DIR}/restore.sh a" >> /etc/crontab
-      service cron reload >/dev/null 2>&1
+      service cron restart >/dev/null 2>&1
     fi
   fi
 
@@ -723,7 +733,7 @@ uninstall() {
     sed -i "/\/opt\/nezha\/dashboard/d" /var/spool/cron/crontabs/root
   else
     sed -i "/\/opt\/nezha\/dashboard/d" /etc/crontab
-    service cron reload >/dev/null 2>&1
+    service cron restart >/dev/null 2>&1
   fi
   info "\n $(text 29) $(text 31) "
 }
