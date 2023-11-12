@@ -122,6 +122,7 @@ Koyeb
 ```
 docker run -dit \
            --name nezha_dashboard \
+           --pull always \
            --restart always \
            -e GH_USER=<fill in github username> \
            -e GH_EMAIL=<fill in github email> \
@@ -141,6 +142,7 @@ version: '3.8'
 services.
     argo-nezha.
         image: fscarmen/argo-nezha
+        --pull always
         container_name: nezha_dashboard
         restart: always
         environment:
@@ -217,7 +219,6 @@ tar czvf dashboard.tar.gz /dashboard
 |-- backup.sh            # Backup data scripts
 |-- restore.sh           # Restore backup scripts
 |-- dbfile               # Record the name of the latest restore or backup file
-|-- version              # Record the current panel app version
 |-- resource             # Folders of information on panel themes, languages, flags, etc.
 |-- data
 |   |-- config.yaml      # Configuration for the Nezha panel, e.g. Github OAuth2 / gRPC domain / port / TLS enabled or not.

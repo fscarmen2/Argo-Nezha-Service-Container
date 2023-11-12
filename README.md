@@ -122,6 +122,7 @@ Koyeb
 ```
 docker run -dit \
            --name nezha_dashboard \
+           --pull always \
            --restart always \
            -e GH_USER=<填 github 用户名> \
            -e GH_EMAIL=<填 github 邮箱> \
@@ -141,6 +142,7 @@ version: '3.8'
 services:
     argo-nezha:
         image: fscarmen/argo-nezha
+        pull: always
         container_name: nezha_dashboard
         restart: always
         environment:
@@ -216,7 +218,6 @@ tar czvf dashboard.tar.gz /dashboard
 |-- backup.sh            # 备份数据脚本
 |-- restore.sh           # 还原备份脚本
 |-- dbfile               # 记录最新的还原或备份文件名
-|-- version              # 记录当前的面板 app 版本
 |-- resource             # 面板主题、语言和旗帜等资料的文件夹
 |-- data
 |   |-- config.yaml      # 哪吒面板的配置，如 Github OAuth2 / gRPC 域名 / 端口 / 是否启用 TLS 等信息
