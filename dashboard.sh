@@ -758,7 +758,7 @@ menu_setting() {
     OPTION[3]="3.  $(text 37)"
 
     ACTION[1]() { check_dependencies; install; exit; }
-    ACTION[2]() { curl -L https://raw.fgit.cf/applexad/nezhascript/main/install.sh  -o nezha.sh && chmod +x nezha.sh && ./nezha.sh; exit; }
+    [ "$L" = 'C' ] && ACTION[2]() { curl -L https://raw.fgit.cf/applexad/nezhascript/main/install.sh  -o nezha.sh && chmod +x nezha.sh && ./nezha.sh; exit; }
     [ "$L" = 'E' ] && ACTION[2]() { curl -L https://raw.fgit.cf/applexad/nezhascript/main/install_en.sh  -o nezha.sh && chmod +x nezha.sh && ./nezha.sh; exit; }
     [ "$L" = 'C' ] && ACTION[3]() { curl -L https://jihulab.com/nezha/dashboard/-/raw/master/script/install.sh -o nezha.sh && chmod +x nezha.sh && CN=true ./nezha.sh; exit; } || ACTION[3]() { curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install_en.sh  -o nezha.sh && chmod +x nezha.sh && sudo ./nezha.sh; exit; }
   fi
