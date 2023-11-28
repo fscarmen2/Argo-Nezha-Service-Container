@@ -16,6 +16,7 @@ Documentation: English version | [中文版](https://github.com/fscarmen2/Argo-N
 - [VPS Deployment Method 2 --- hosts](README_EN.md#vps-deployment-method-2-----hosts)
 - [Client Access](README_EN.md#client-access)
 - [SSH Access](README_EN.md#ssh-access)
+- [Manual Backup data](README_EN.md#manual-backup-data)
 - [Auto Restore Backup](README_EN.md#automatically-restore-backups)
 - [Manual Restore Backup](README_EN.md#manually-restore-the-backup)
 - [Migrating data](README_EN.md#migrating-data)
@@ -183,6 +184,14 @@ curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install.sh -
 <img width="1189" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/0aeb3939-51c7-47ac-a7fd-25a8a01d3df5">
 <img width="840" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/16961ade-aafc-4132-92a1-aa218e0fead9">
 <img width="1201" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/3146b2e2-f988-487f-ab63-00218eb4d570">
+
+
+## Manually backing up your data
+Method 1: Change the contents of the `README.md` file in the Github backup repository to `backup`
+
+<img width="970" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/c5b6bc4b-e69c-48ce-97d4- 3f9be88515f3">
+
+Method 2: After ssh, run `/dashboard/backup.sh` for container version; `/opt/nezha/dashboard/backup.sh` for VPS host version.
 
 
 ## Automatically restore backups

@@ -16,6 +16,7 @@ Documentation: [English version](https://github.com/fscarmen2/Argo-Nezha-Service
 - [VPS 部署方式 2 --- 宿主机](README.md#vps-部署方式-2-----宿主机)
 - [客户端接入](README.md#客户端接入)
 - [SSH 接入](README.md#ssh-接入)
+- [手动备份数据](README.md#手动备份数据)
 - [自动还原备份](README.md#自动还原备份)
 - [手动还原备份](README.md#手动还原备份)
 - [完美搬家](README.md#完美搬家)
@@ -183,6 +184,14 @@ curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install.sh -
 <img width="1180" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/507b037a-25c6-457f-b2b5-d54f4b70a2b6">
 <img width="828" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/80284f0b-e2d7-4adb-982a-969aca0cb5f6">
 <img width="955" alt="image" src="https://user-images.githubusercontent.com/92626977/233350802-754624e0-8456-4353-8577-1f5385fb8723.png">
+
+
+## 手动备份数据
+方法一: 把 Github 备份库里的 `README.md` 文件内容改为 `backup`
+
+<img width="970" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/c5b6bc4b-e69c-48ce-97d4-3f9be88515f3">
+
+方法二: ssh 进去后，容器版本运行 `/dashboard/backup.sh`; 非容器版本运行 `/opt/nezha/dashboard/backup.sh`
 
 
 ## 自动还原备份

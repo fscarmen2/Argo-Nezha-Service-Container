@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # 各变量默认值
-#GH_PROXY='https://ghproxy.com/'
+GH_PROXY=https://mirror.ghproxy.com
 WORK_DIR='/opt/nezha/dashboard'
 TEMP_DIR='/tmp/nezha'
 START_PORT='5000'
@@ -621,6 +621,9 @@ ABC
 }
 
 ONLINE="\$(wget -qO- --header="Authorization: token \$GH_PAT" "https://raw.githubusercontent.com/\$GH_BACKUP_USER/\$GH_REPO/main/README.md" | sed "/^$/d" | head -n 1)"
+
+# 若用户在 Github 的 README.md 里改了内容包含关键词 backup，则触发实时备份
+grep -qi 'backup' <<< "\$ONLINE" && { \$WORK_DIR/backup.sh; exit 0; }
 
 # 读取面板现配置信息
 CONFIG_HTTPPORT=\$(grep '^httpport:' \$WORK_DIR/data/config.yaml)

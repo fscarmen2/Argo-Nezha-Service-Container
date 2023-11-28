@@ -211,6 +211,9 @@ hint() { echo -e "\033[33m\033[01m\$*\033[0m"; }   # 黄色
 
 ONLINE="\$(wget -qO- --header="Authorization: token \$GH_PAT" "https://raw.githubusercontent.com/\$GH_BACKUP_USER/\$GH_REPO/main/README.md" | sed "/^$/d" | head -n 1)"
 
+# 若用户在 Github 的 README.md 里改了内容包含关键词 backup，则触发实时备份
+grep -qi 'backup' <<< "\$ONLINE" && { \$WORK_DIR/backup.sh; exit 0; }
+
 # 读取面板现配置信息
 CONFIG_HTTPPORT=\$(grep '^httpport:' \$WORK_DIR/data/config.yaml)
 CONFIG_LANGUAGE=\$(grep '^language:' \$WORK_DIR/data/config.yaml)
