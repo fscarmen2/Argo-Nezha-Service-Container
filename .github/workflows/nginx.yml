@@ -2,8 +2,8 @@ name: "Build and push images tag nginx"
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: 0 16 * * *
+  #schedule:
+  #  - cron: 0 16 * * *
 
 jobs:
   Building:
