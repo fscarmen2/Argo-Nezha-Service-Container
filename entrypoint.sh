@@ -20,9 +20,9 @@ if [ ! -s /etc/supervisor/conf.d/damon.conf ]; then
   echo -e "nameserver 127.0.0.11\nnameserver 8.8.4.4\nnameserver 223.5.5.5\nnameserver 2001:4860:4860::8844\nnameserver 2400:3200::1\n" > /etc/resolv.conf
 
   # 下载需要的应用
-  wget -c https://github.com/fscarmen2/Argo-Nezha-Service-Container/releases/download/grpcwebproxy/grpcwebproxy_linux_$(uname -m | sed "s#x86_64#amd64#; s#aarch64#arm64#").tar.gz -qO- | tar xz -C $WORK_DIR
-  wget -qO $WORK_DIR/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$(uname -m | sed "s#x86_64#amd64#; s#aarch64#arm64#")
-  wget -O $WORK_DIR/nezha-agent.zip https://github.com/nezhahq/agent/releases/latest/download/nezha-agent_linux_$(uname -m | sed "s#x86_64#amd64#; s#aarch64#arm64#").zip
+  wget -c https://github.com/fscarmen2/Argo-Nezha-Service-Container/releases/download/grpcwebproxy/grpcwebproxy_linux_$(uname -m | sed "s#x86_64#amd64#; s#aarch64#arm64#; s#arm.*#arm#").tar.gz -qO- | tar xz -C $WORK_DIR
+  wget -qO $WORK_DIR/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$(uname -m | sed "s#x86_64#amd64#; s#aarch64#arm64#; s#arm.*#arm#")
+  wget -O $WORK_DIR/nezha-agent.zip https://github.com/nezhahq/agent/releases/latest/download/nezha-agent_linux_$(uname -m | sed "s#x86_64#amd64#; s#aarch64#arm64#; s#arm.*#arm#").zip
   unzip $WORK_DIR/nezha-agent.zip -d $WORK_DIR/
 
   rm -f $WORK_DIR/nezha-agent.zip
@@ -141,9 +141,9 @@ if [[ "\${DASHBOARD_UPDATE}\${CLOUDFLARED_UPDATE}\${IS_BACKUP}\${FORCE_UPDATE}" 
     # 更新面板和 resource
     if [[ "\${DASHBOARD_UPDATE}\${FORCE_UPDATE}" =~ 'true' ]]; then
       hint "\n Renew dashboard app to \$DASHBOARD_LATEST \n"
-      wget -O /tmp/dashboard.zip https://github.com/naiba/nezha/releases/download/\$DASHBOARD_LATEST/dashboard-linux-\$(uname -m | sed "s#x86_64#amd64#; s#aarch64#arm64#").zip
+      wget -O /tmp/dashboard.zip https://github.com/naiba/nezha/releases/download/\$DASHBOARD_LATEST/dashboard-linux-\$(uname -m | sed "s#x86_64#amd64#; s#aarch64#arm64#; s#arm.*#arm#").zip
       unzip /tmp/dashboard.zip -d /tmp
-      mv -f /tmp/dist/dashboard-linux-\$(uname -m | sed "s#x86_64#amd64#; s#aarch64#arm64#") \$WORK_DIR/app
+      mv -f /tmp/dist/dashboard-linux-\$(uname -m | sed "s#x86_64#amd64#; s#aarch64#arm64#; s#arm.*#arm#") \$WORK_DIR/app
       rm -rf /tmp/dist /tmp/dashboard.zip
     fi
 
