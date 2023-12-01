@@ -2,7 +2,7 @@
 
 Nezha server over Argo tunnel
 
-The latest version: v0.15.14
+The latest version: v0.15.17
 
 Documentation: English version | [中文版](https://github.com/fscarmen2/Argo-Nezha-Service-Container/blob/main/README.md)
 
