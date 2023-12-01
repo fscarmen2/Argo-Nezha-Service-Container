@@ -12,6 +12,7 @@ builds:
     goarch:
       - amd64
       - arm64
+      - arm
     gomips:
       - softfloat
     main: ./go/grpcwebproxy/

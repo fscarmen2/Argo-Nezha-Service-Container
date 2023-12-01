@@ -30,23 +30,23 @@ if [ ! -s /etc/supervisor/conf.d/damon.conf ]; then
   # 根据参数生成哪吒服务端配置文件
   [ ! -d data ] && mkdir data
   cat > ${WORK_DIR}/data/config.yaml << EOF
-debug: false
-httpport: 80
-language: zh-CN
-grpcport: 5555
-grpchost: $ARGO_DOMAIN
-proxygrpcport: 443
-tls: true
-oauth2:
-  type: "github" #Oauth2 登录接入类型，github/gitlab/jihulab/gitee/gitea ## Argo-容器版本只支持 github
-  admin: "$GH_USER" #管理员列表，半角逗号隔开
-  clientid: "$GH_CLIENTID" # 在 https://github.com/settings/developers 创建，无需审核 Callback 填 http(s)://域名或IP/oauth2/callback
-  clientsecret: "$GH_CLIENTSECRET"
-  endpoint: "" # 如gitea自建需要设置 ## Argo-容器版本只支持 github
+Debug: false
+HTTPPort: 80
+Language: zh-CN
+GRPCPort: 5555
+GRPCHost: $ARGO_DOMAIN
+ProxyGRPCPort: 443
+TLS: true
+Oauth2:
+  Type: "github" #Oauth2 登录接入类型，github/gitlab/jihulab/gitee/gitea ## Argo-容器版本只支持 github
+  Admin: "$GH_USER" #管理员列表，半角逗号隔开
+  ClientID: "$GH_CLIENTID" # 在 https://github.com/settings/developers 创建，无需审核 Callback 填 http(s)://域名或IP/oauth2/callback
+  ClientSecret: "$GH_CLIENTSECRET"
+  Endpoint: "" # 如gitea自建需要设置 ## Argo-容器版本只支持 github
 site:
-  brand: "Nezha Probe"
-  cookiename: "nezha-dashboard" #浏览器 Cookie 字段名，可不改
-  theme: "default"
+  Brand: "Nezha Probe"
+  Cookiename: "nezha-dashboard" #浏览器 Cookie 字段名，可不改
+  Theme: "default"
 EOF
 
   # SSH path 与 GH_CLIENTSECRET 一样
@@ -113,7 +113,7 @@ hint() { echo -e "\033[33m\033[01m\$*\033[0m"; }   # 黄色
 # 检查更新面板主程序 app 及 cloudflared
 cd \$WORK_DIR
 DASHBOARD_NOW=\$(./app -v)
-DASHBOARD_LATEST=\$(wget -qO- "https://api.github.com/repos/applexad/nezha-binary-build/releases/latest" | awk -F '"' '/"tag_name"/{print \$4}')
+DASHBOARD_LATEST=\$(wget -qO- "https://api.github.com/repos/naiba/nezha/releases/latest" | awk -F '"' '/"tag_name"/{print \$4}')
 [[ "\$DASHBOARD_LATEST" =~ ^v([0-9]{1,3}\.){2}[0-9]{1,3}\$ && "\$DASHBOARD_NOW" != "\$DASHBOARD_LATEST" ]] && DASHBOARD_UPDATE=true
 
 CLOUDFLARED_NOW=\$(./cloudflared -v | awk '{for (i=0; i<NF; i++) if (\$i=="version") {print \$(i+1)}}')
@@ -141,9 +141,17 @@ if [[ "\${DASHBOARD_UPDATE}\${CLOUDFLARED_UPDATE}\${IS_BACKUP}\${FORCE_UPDATE}" 
     # 更新面板和 resource
     if [[ "\${DASHBOARD_UPDATE}\${FORCE_UPDATE}" =~ 'true' ]]; then
       hint "\n Renew dashboard app to \$DASHBOARD_LATEST \n"
-      wget -O \$WORK_DIR/app https://github.com/applexad/nezha-binary-build/releases/latest/download/dashboard-linux-\$(uname -m | sed "s#x86_64#amd64#; s#aarch64#arm64#")
-      wget -c https://github.com/applexad/nezha-binary-build/releases/latest/download/resource.tar.gz -qO- | tar xvz -C \$WORK_DIR
+      wget -O /tmp/dashboard.zip https://github.com/naiba/nezha/releases/download/\$DASHBOARD_LATEST/dashboard-linux-\$(uname -m | sed "s#x86_64#amd64#; s#aarch64#arm64#").zip
+      unzip /tmp/dashboard.zip -d /tmp
+      mv -f /tmp/dist/dashboard-linux-\$(uname -m | sed "s#x86_64#amd64#; s#aarch64#arm64#") \$WORK_DIR/app
+      rm -rf /tmp/dist /tmp/dashboard.zip
     fi
+
+    # 处理 v0.15.17 之后自定义主题静态链接的路径问题，删除原 resource 下的非 custom 文件夹及文件
+    [ -d \$WORK_DIR/resource/static/theme-custom ] && mv -f \$WORK_DIR/resource/static/theme-custom \$WORK_DIR/resource/static/custom
+    [ -s \$WORK_DIR/resource/template/theme-custom/header.html ] && sed -i 's#/static/theme-custom/#/static-custom/#g' \$WORK_DIR/resource/template/theme-custom/header.html
+    find \$WORK_DIR/resource ! -path "\$WORK_DIR/resource/*/*custom*" -type f -delete
+    find \$WORK_DIR/resource ! -path "\$WORK_DIR/resource/*/*custom*" -type d -empty -delete
 
     # 更新 cloudflared
     if [[ "\${CLOUDFLARED_UPDATE}\${FORCE_UPDATE}" =~ 'true' ]]; then
@@ -211,19 +219,16 @@ hint() { echo -e "\033[33m\033[01m\$*\033[0m"; }   # 黄色
 
 ONLINE="\$(wget -qO- --header="Authorization: token \$GH_PAT" "https://raw.githubusercontent.com/\$GH_BACKUP_USER/\$GH_REPO/main/README.md" | sed "/^$/d" | head -n 1)"
 
-# 若用户在 Github 的 README.md 里改了内容包含关键词 backup，则触发实时备份
-grep -qi 'backup' <<< "\$ONLINE" && { \$WORK_DIR/backup.sh; exit 0; }
-
 # 读取面板现配置信息
-CONFIG_HTTPPORT=\$(grep '^httpport:' \$WORK_DIR/data/config.yaml)
-CONFIG_LANGUAGE=\$(grep '^language:' \$WORK_DIR/data/config.yaml)
-CONFIG_GRPCPORT=\$(grep '^grpcport:' \$WORK_DIR/data/config.yaml)
-CONFIG_GRPCHOST=\$(grep '^grpchost:' \$WORK_DIR/data/config.yaml)
-CONFIG_PROXYGRPCPORT=\$(grep '^proxygrpcport:' \$WORK_DIR/data/config.yaml)
-CONFIG_TYPE=\$(sed -n '/type:/s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml)
-CONFIG_ADMIN=\$(sed -n '/admin:/s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml)
-CONFIG_CLIENTID=\$(sed -n '/clientid:/s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml)
-CONFIG_CLIENTSECRET=\$(sed -n '/clientsecret:/s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml)
+CONFIG_HTTPPORT=\$(grep -i '^httpport:' \$WORK_DIR/data/config.yaml)
+CONFIG_LANGUAGE=\$(grep -i '^language:' \$WORK_DIR/data/config.yaml)
+CONFIG_GRPCPORT=\$(grep -i '^grpcport:' \$WORK_DIR/data/config.yaml)
+CONFIG_GRPCHOST=\$(grep -i '^grpchost:' \$WORK_DIR/data/config.yaml)
+CONFIG_PROXYGRPCPORT=\$(grep -i '^proxygrpcport:' \$WORK_DIR/data/config.yaml)
+CONFIG_TYPE=\$(sed -n '/type:/I s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml)
+CONFIG_ADMIN=\$(sed -n '/admin:/I s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml)
+CONFIG_CLIENTID=\$(sed -n '/clientid:/I s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml)
+CONFIG_CLIENTSECRET=\$(sed -n '/clientsecret:/I s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml)
 
 # 如 dbfile 不为空，即不是首次安装，记录当前面板的主题等信息
 [ -s \$WORK_DIR/dbfile ] && CONFIG_BRAND=\$(sed -n '/brand:/s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml) &&
@@ -260,14 +265,20 @@ if [ -e \$TEMP_DIR/backup.tar.gz ]; then
   FILE_PATH=\$(sed -n 's#\(.*/\)data/sqlite\.db.*#\1#gp' <<< "\$FILE_LIST")
 
   # 判断备份文件里是否有用户自定义主题，如有则一并解压到临时文件夹
-  CUSTOM_PATH=(\$(sed -n "/-custom/s#\$FILE_PATH\(.*-custom\)/.*#\1#gp" <<< "\$FILE_LIST" | sort -u))
+  CUSTOM_PATH=(\$(sed -n "/custom/s#\$FILE_PATH\(.*custom\)/.*#\1#gp" <<< "\$FILE_LIST" | sort -u))
   [ \${#CUSTOM_PATH[@]} -gt 0 ] && CUSTOM_FULL_PATH=(\$(for k in \${CUSTOM_PATH[@]}; do echo \${FILE_PATH}\${k}; done))
   echo "↓↓↓↓↓↓↓↓↓↓ Restore-file list ↓↓↓↓↓↓↓↓↓↓"
   tar xzvf \$TEMP_DIR/backup.tar.gz -C \$TEMP_DIR \${CUSTOM_FULL_PATH[@]} \${FILE_PATH}data
   echo -e "↑↑↑↑↑↑↑↑↑↑ Restore-file list ↑↑↑↑↑↑↑↑↑↑\n\n"
 
+  # 处理 v0.15.17 之后自定义主题静态链接的路径问题，删除备份文件中 resource 下的非 custom 文件夹及文件
+  [ -d \$TEMP_DIR/resource/static/theme-custom ] && mv -f \$TEMP_DIR/resource/static/theme-custom \$TEMP_DIR/resource/static/custom
+  [ -s \$TEMP_DIR/resource/template/theme-custom/header.html ] && sed -i 's#/static/theme-custom/#/static-custom/#g' \$TEMP_DIR/resource/template/theme-custom/header.html
+  find \$TEMP_DIR/resource ! -path "\$TEMP_DIR/resource/*/*custom*" -type f -delete
+  find \$TEMP_DIR/resource ! -path "\$TEMP_DIR/resource/*/*custom*" -type d -empty -delete
+
   # 还原面板配置的最新信息
-  sed -i "s@httpport:.*@\$CONFIG_HTTPPORT@; s@language:.*@\$CONFIG_LANGUAGE@; s@^grpcport:.*@\$CONFIG_GRPCPORT@; s@grpchost:.*@\$CONFIG_GRPCHOST@; s@proxygrpcport:.*@\$CONFIG_PROXYGRPCPORT@; s@type:.*@\$CONFIG_TYPE@; s@admin:.*@\$CONFIG_ADMIN@; s@clientid:.*@\$CONFIG_CLIENTID@; s@clientsecret:.*@\$CONFIG_CLIENTSECRET@" \${TEMP_DIR}/\${FILE_PATH}data/config.yaml
+  sed -i "s@HTTPPort:.*@\$CONFIG_HTTPPORT@I; s@Language:.*@\$CONFIG_LANGUAGE@I; s@^GRPCPort:.*@\$CONFIG_GRPCPORT@I; s@gGRPCHost:.*@I\$CONFIG_GRPCHOST@I; s@ProxyGRPCPort:.*@\$CONFIG_PROXYGRPCPORT@I; s@Type:.*@\$CONFIG_TYPE@I; s@Admin:.*@\$CONFIG_ADMIN@I; s@ClientID:.*@\$CONFIG_CLIENTID@I; s@ClientSecret:.*@\$CONFIG_CLIENTSECRET@I" \${TEMP_DIR}/\${FILE_PATH}data/config.yaml
 
   # 逻辑是安装首次使用备份文件里的主题信息，之后使用本地最新的主题信息
   [[ -n "\$CONFIG_BRAND && -n "\$CONFIG_COOKIENAME && -n "\$CONFIG_THEME" ]] &&

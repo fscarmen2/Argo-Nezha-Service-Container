@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # 各变量默认值
-GH_PROXY=https://mirror.ghproxy.com
+GH_PROXY=https://mirror.ghproxy.com/
 WORK_DIR='/opt/nezha/dashboard'
 TEMP_DIR='/tmp/nezha'
 START_PORT='5000'
@@ -83,14 +83,12 @@ E[34]="Important!!! Please turn on gRPC at the Network of the relevant Cloudflar
 C[34]="重要!!! 请到 Cloudflare 相关域名的 Network 处打开 gRPC 功能，否则客户端数据不通!具体可参照教程: [https://github.com/fscarmen2/Argo-Nezha-Service-Container]"
 E[35]="Please add two Public hostnames to Cloudnflare Tunnel: \\\n 1. ------------------------ \\\n Public hostname: \$ARGO_DOMAIN \\\n Path: proto.NezhaService \\\n Type: HTTPS \\\n URL: localhost:\$GRPC_PROXY_PORT \\\n Additional application settings ---\> TLS: Enable [No TLS Verify] and [HTTP2 connection] \\\n\\\n 2. ------------------------ \\\n Public hostname: \$ARGO_DOMAIN \\\n Type: HTTP \\\n URL: localhost:\$WEB_PORT"
 C[35]="请在 Cloudnflare Tunnel 里增加两个 Public hostnames: \\\n 1. ------------------------ \\\n Public hostname: \$ARGO_DOMAIN \\\n Path: proto.NezhaService \\\n Type: HTTPS \\\n URL: localhost:\$GRPC_PROXY_PORT \\\n Additional application settings ---\> TLS: 开启 [No TLS Verify] 和 [HTTP2 connection] 这两处功能 \\\n\\\n 2. ------------------------ \\\n Public hostname: \$ARGO_DOMAIN \\\n Type: HTTP \\\n URL: localhost:\$WEB_PORT"
-E[36]="Install applexad's VPS version (modified from official version) (https://github.com/applexad/nezhascript)"
-C[36]="安装 applexad 的官方修改 VPS 版 (https://github.com/applexad/nezhascript)"
-E[37]="Install Nezha's official docker version (https://github.com/naiba/nezha)"
-C[37]="安装哪吒官方容器版 (https://github.com/naiba/nezha)"
+E[36]="Downloading the \${FAILED[*]} failed. Installation aborted. Feedback: [https://github.com/fscarmen2/Argo-Nezha-Service-Container/issues]"
+C[36]="下载 \${FAILED[*]} 失败，安装中止，问题反馈:[https://github.com/fscarmen2/Argo-Nezha-Service-Container/issues]"
+E[37]="Install Nezha's official VPS or docker version (https://github.com/naiba/nezha)"
+C[37]="安装哪吒官方 VPS 或 Docker 版本 (https://github.com/naiba/nezha)"
 E[38]="Downloading. Please wait a minute."
 C[38]="下载中, 请稍等"
-E[39]="Downloading the \${FAILED[*]} failed. Installation aborted. Feedback: [https://github.com/fscarmen2/Argo-Nezha-Service-Container/issues]"
-C[39]="下载 \${FAILED[*]} 失败，安装中止，问题反馈:[https://github.com/fscarmen2/Argo-Nezha-Service-Container/issues]"
 
 # 自定义字体彩色，read 函数
 warning() { echo -e "\033[31m\033[01m$*\033[0m"; }  # 红色
@@ -157,10 +155,12 @@ check_install() {
   STATUS=$(text 26) && [ -s /etc/systemd/system/nezha-dashboard.service ] && STATUS=$(text 27) && [ "$(systemctl is-active nezha-dashboard)" = 'active' ] && STATUS=$(text 28)
 
   if [ "$STATUS" = "$(text 26)" ]; then
-    { wget -c ${GH_PROXY}https://github.com/applexad/nezha-binary-build/releases/latest/download/resource.tar.gz -qO- | tar xz -C $TEMP_DIR >/dev/null 2>&1; }&
     { wget -qO $TEMP_DIR/cloudflared ${GH_PROXY}https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$ARCH >/dev/null 2>&1 && chmod +x $TEMP_DIR/cloudflared >/dev/null 2>&1; }&
     { wget -c ${GH_PROXY}https://github.com/fscarmen2/Argo-Nezha-Service-Container/releases/download/grpcwebproxy/grpcwebproxy_linux_$ARCH.tar.gz -qO- | tar xz -C $TEMP_DIR >/dev/null 2>&1; }&
-    { wget -qO $TEMP_DIR/app ${GH_PROXY}https://github.com/applexad/nezha-binary-build/releases/latest/download/dashboard-$DASHBOARD_ARCH >/dev/null 2>&1 && chmod +x $TEMP_DIR/app >/dev/null 2>&1; }&
+    { DASHBOARD_LATEST=$(wget -qO- "https://api.github.com/repos/naiba/nezha/releases/latest" | awk -F '"' '/"tag_name"/{print $4}' || echo 'v0.15.17')
+      wget -qO $TEMP_DIR/dashboard.zip ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$DASHBOARD_LATEST/dashboard-linux-$(uname -m | sed "s#x86_64#amd64#; s#aarch64#arm64#").zip
+      unzip $TEMP_DIR/dashboard.zip -d $TEMP_DIR >/dev/null 2>&1 &
+      mv -f $TEMP_DIR/dist/dashboard-linux-$(uname -m | sed "s#x86_64#amd64#; s#aarch64#arm64#") $TEMP_DIR/app; }&
   fi
 }
 
@@ -291,7 +291,7 @@ dashboard_variables() {
 
   [ -z "$GH_REPO"] && reading "\n (6/9) $(text 14) " GH_REPO
   if [ -n "$GH_REPO" ]; then
-    reading "\n (7/8) $(text 15) " GH_BACKUP_USER
+    reading "\n (7/9) $(text 15) " GH_BACKUP_USER
     GH_BACKUP_USER=${GH_BACKUP_USER:-$GH_USER}
     [ -z "$GH_EMAIL"] && reading "\n (8/9) $(text 16) " GH_EMAIL
     [ -z "$GH_PAT"] && reading "\n (9/9) $(text 17) " GH_PAT
@@ -308,14 +308,14 @@ install() {
   wait
 
   # 检测下载的文件或文件夹是否齐
-  for f in ${TEMP_DIR}/{cloudflared,grpcwebproxy,app,resource,nezha.key,nezha.csr,nezha.pem}; do
+  for f in ${TEMP_DIR}/{cloudflared,grpcwebproxy,app,nezha.key,nezha.csr,nezha.pem}; do
     [ ! -s "$f" ] && FAILED+=("${f//${TEMP_DIR}\//}")
   done
-  [ "${#FAILED[@]}" -gt 0 ] && error "\n $(text 39) "
+  [ "${#FAILED[@]}" -gt 0 ] && error "\n $(text 36) "
 
   # 从临时文件夹复制已下载的所有到工作文件夹
   [ ! -d ${WORK_DIR}/data ] && mkdir -p ${WORK_DIR}/data
-  cp -r $TEMP_DIR/{app,cloudflared,grpcwebproxy,resource,nezha.*} $WORK_DIR
+  cp -r $TEMP_DIR/{app,cloudflared,grpcwebproxy,nezha.*} $WORK_DIR
   rm -rf $TEMP_DIR
 
   # 根据参数生成哪吒服务端配置文件
@@ -335,23 +335,23 @@ install() {
   fi
 
   cat > ${WORK_DIR}/data/config.yaml << EOF
-debug: false
-httpport: $WEB_PORT
-language: $DASHBOARD_LANGUAGE
-grpcport: $GRPC_PORT
-grpchost: $ARGO_DOMAIN
-proxygrpcport: 443
-tls: true
-oauth2:
-  type: "github" #Oauth2 登录接入类型，github/gitlab/jihulab/gitee/gitea
-  admin: "$GH_USER" #管理员列表，半角逗号隔开
-  clientid: "$GH_CLIENTID" # 在 https://github.com/settings/developers 创建，无需审核 Callback 填 http(s)://域名或IP/oauth2/callback
-  clientsecret: "$GH_CLIENTSECRET"
-  endpoint: "" # 如gitea自建需要设置
-site:
-  brand: "Nezha Probe"
-  cookiename: "nezha-dashboard" #浏览器 Cookie 字段名，可不改
-  theme: "default"
+Debug: false
+HTTPPort: $WEB_PORT
+Language: $DASHBOARD_LANGUAGE
+GRPCPort: $GRPC_PORT
+GRPCHost: $ARGO_DOMAIN
+ProxyGRPCPort: 443
+TLS: true
+Oauth2:
+  Type: "github" #Oauth2 登录接入类型，github/gitlab/jihulab/gitee/gitea
+  Admin: "$GH_USER" #管理员列表，半角逗号隔开
+  ClientID: "$GH_CLIENTID" # 在 https://github.com/settings/developers 创建，无需审核 Callback 填 http(s)://域名或IP/oauth2/callback
+  ClientSecret: "$GH_CLIENTSECRET"
+  Endpoint: "" # 如gitea自建需要设置
+Site:
+  Brand: "Nezha Probe"
+  CookieName: "nezha-dashboard" #浏览器 Cookie 字段名，可不改
+  Theme: "default"
 EOF
 
   # 判断 ARGO_AUTH 为 json 还是 token
@@ -427,6 +427,7 @@ EOF
 
 # backup.sh 传参 a 自动还原； 传参 m 手动还原； 传参 f 强制更新面板 app 文件及 cloudflared 文件，并备份数据至成备份库
 
+GH_PROXY=$GH_PROXY
 GH_PAT=$GH_PAT
 GH_BACKUP_USER=$GH_BACKUP_USER
 GH_EMAIL=$GH_EMAIL
@@ -480,7 +481,7 @@ ABC
 # 检查更新面板主程序 app 及 cloudflared
 cd \$WORK_DIR
 DASHBOARD_NOW=\$(./app -v)
-DASHBOARD_LATEST=\$(wget -qO- "https://api.github.com/repos/applexad/nezha-binary-build/releases/latest" | awk -F '"' '/"tag_name"/{print \$4}')
+DASHBOARD_LATEST=\$(wget -qO- "https://api.github.com/repos/naiba/nezha/releases/latest" | awk -F '"' '/"tag_name"/{print \$4}')
 [[ "\$DASHBOARD_LATEST" =~ ^v([0-9]{1,3}\.){2}[0-9]{1,3}\$ && "\$DASHBOARD_NOW" != "\$DASHBOARD_LATEST" ]] && DASHBOARD_UPDATE=true
 
 CLOUDFLARED_NOW=\$(./cloudflared -v | awk '{for (i=0; i<NF; i++) if (\$i=="version") {print \$(i+1)}}')
@@ -509,9 +510,17 @@ if [[ "\${DASHBOARD_UPDATE}\${CLOUDFLARED_UPDATE}\${IS_BACKUP}\${FORCE_UPDATE}" 
     # 更新面板和 resource
     if [[ "\${DASHBOARD_UPDATE}\${FORCE_UPDATE}" =~ 'true' ]]; then
       hint "\n Renew dashboard app to \$DASHBOARD_LATEST \n"
-      wget -O \$WORK_DIR/app \${GH_PROXY}https://github.com/applexad/nezha-binary-build/releases/latest/download/dashboard-\$DASHBOARD_ARCH
-      wget -c \${GH_PROXY}https://github.com/applexad/nezha-binary-build/releases/latest/download/resource.tar.gz -qO- | tar xvz -C \$WORK_DIR
+      wget -O /tmp/dashboard.zip \${GH_PROXY}https://github.com/naiba/nezha/releases/download/\$DASHBOARD_LATEST/dashboard-linux-\$(uname -m | sed "s#x86_64#amd64#; s#aarch64#arm64#").zip
+      unzip /tmp/dashboard.zip -d /tmp
+      mv -f /tmp/dist/dashboard-linux-\$(uname -m | sed "s#x86_64#amd64#; s#aarch64#arm64#") /tmp/app
+      rm -rf /tmp/dist /tmp/dashboard.zip
     fi
+
+    # 处理 v0.15.17 之后自定义主题静态链接的路径问题，删除原 resource 下的非 custom 文件夹及文件
+    [ -d \$WORK_DIR/resource/static/theme-custom ] && mv -f \$WORK_DIR/resource/static/theme-custom \$WORK_DIR/resource/static/custom
+    [ -s \$WORK_DIR/resource/template/theme-custom/header.html ] && sed -i 's#/static/theme-custom/#/static-custom/#g' \$WORK_DIR/resource/template/theme-custom/header.html
+    find \$WORK_DIR/resource ! -path "\$WORK_DIR/resource/*/*custom*" -type f -delete
+    find \$WORK_DIR/resource ! -path "\$WORK_DIR/resource/*/*custom*" -type d -empty -delete
 
     # 更新 cloudflared
     if [[ "\${CLOUDFLARED_UPDATE}\${FORCE_UPDATE}" =~ 'true' ]]; then
@@ -626,15 +635,15 @@ ONLINE="\$(wget -qO- --header="Authorization: token \$GH_PAT" "https://raw.githu
 grep -qi 'backup' <<< "\$ONLINE" && { \$WORK_DIR/backup.sh; exit 0; }
 
 # 读取面板现配置信息
-CONFIG_HTTPPORT=\$(grep '^httpport:' \$WORK_DIR/data/config.yaml)
-CONFIG_LANGUAGE=\$(grep '^language:' \$WORK_DIR/data/config.yaml)
-CONFIG_GRPCPORT=\$(grep '^grpcport:' \$WORK_DIR/data/config.yaml)
-CONFIG_GRPCHOST=\$(grep '^grpchost:' \$WORK_DIR/data/config.yaml)
-CONFIG_PROXYGRPCPORT=\$(grep '^proxygrpcport:' \$WORK_DIR/data/config.yaml)
-CONFIG_TYPE=\$(sed -n '/type:/s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml)
-CONFIG_ADMIN=\$(sed -n '/admin:/s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml)
-CONFIG_CLIENTID=\$(sed -n '/clientid:/s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml)
-CONFIG_CLIENTSECRET=\$(sed -n '/clientsecret:/s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml)
+CONFIG_HTTPPORT=\$(grep -i '^httpport:' \$WORK_DIR/data/config.yaml)
+CONFIG_LANGUAGE=\$(grep -i '^language:' \$WORK_DIR/data/config.yaml)
+CONFIG_GRPCPORT=\$(grep -i '^grpcport:' \$WORK_DIR/data/config.yaml)
+CONFIG_GRPCHOST=\$(grep -i '^grpchost:' \$WORK_DIR/data/config.yaml)
+CONFIG_PROXYGRPCPORT=\$(grep -i '^proxygrpcport:' \$WORK_DIR/data/config.yaml)
+CONFIG_TYPE=\$(sed -n '/type:/I s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml)
+CONFIG_ADMIN=\$(sed -n '/admin:/I s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml)
+CONFIG_CLIENTID=\$(sed -n '/clientid:/I s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml)
+CONFIG_CLIENTSECRET=\$(sed -n '/clientsecret:/I s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml)
 
 # 如 dbfile 不为空，即不是首次安装，记录当前面板的主题等信息
 [ -s \$WORK_DIR/dbfile ] && CONFIG_BRAND=\$(sed -n '/brand:/s/^[ ]\+//gp' \$WORK_DIR/data/config.yaml) &&
@@ -671,14 +680,20 @@ if [ -e \$TEMP_DIR/backup.tar.gz ]; then
   FILE_PATH=\$(sed -n 's#\(.*/\)data/sqlite\.db.*#\1#gp' <<< "\$FILE_LIST")
 
   # 判断备份文件里是否有用户自定义主题，如有则一并解压
-  CUSTOM_PATH=(\$(sed -n "/-custom/s#\$FILE_PATH\(.*-custom\)/.*#\1#gp" <<< "\$FILE_LIST" | sort -u))
+  CUSTOM_PATH=(\$(sed -n "/custom/s#\$FILE_PATH\(.*custom\)/.*#\1#gp" <<< "\$FILE_LIST" | sort -u))
   [ \${#CUSTOM_PATH[@]} -gt 0 ] && CUSTOM_FULL_PATH=(\$(for k in \${CUSTOM_PATH[@]}; do echo \${FILE_PATH}\${k}; done))
   echo "↓↓↓↓↓↓↓↓↓↓ Restore-file list ↓↓↓↓↓↓↓↓↓↓"
   tar xzvf \$TEMP_DIR/backup.tar.gz -C \$TEMP_DIR \${CUSTOM_FULL_PATH[@]} \${FILE_PATH}data
   echo -e "↑↑↑↑↑↑↑↑↑↑ Restore-file list ↑↑↑↑↑↑↑↑↑↑\n\n"
 
+  # 处理 v0.15.17 之后自定义主题静态链接的路径问题，删除备份文件中 resource 下的非 custom 文件夹及文件
+  [ -d \$TEMP_DIR/resource/static/theme-custom ] && mv -f \$TEMP_DIR/resource/static/theme-custom \$TEMP_DIR/resource/static/custom
+  [ -s \$TEMP_DIR/resource/template/theme-custom/header.html ] && sed -i 's#/static/theme-custom/#/static-custom/#g' \$TEMP_DIR/resource/template/theme-custom/header.html
+  find \$TEMP_DIR/resource ! -path "\$TEMP_DIR/resource/*/*custom*" -type f -delete
+  find \$TEMP_DIR/resource ! -path "\$TEMP_DIR/resource/*/*custom*" -type d -empty -delete
+
   # 还原面板配置的最新信息
-  sed -i "s@httpport:.*@\$CONFIG_HTTPPORT@; s@language:.*@\$CONFIG_LANGUAGE@; s@^grpcport:.*@\$CONFIG_GRPCPORT@; s@grpchost:.*@\$CONFIG_GRPCHOST@; s@proxygrpcport:.*@\$CONFIG_PROXYGRPCPORT@; s@type:.*@\$CONFIG_TYPE@; s@admin:.*@\$CONFIG_ADMIN@; s@clientid:.*@\$CONFIG_CLIENTID@; s@clientsecret:.*@\$CONFIG_CLIENTSECRET@" \${TEMP_DIR}/\${FILE_PATH}data/config.yaml
+  sed -i "s@HTTPPort:.*@\$CONFIG_HTTPPORT@I; s@Language:.*@\$CONFIG_LANGUAGE@I; s@^GRPCPort:.*@\$CONFIG_GRPCPORT@I; s@gGRPCHost:.*@I\$CONFIG_GRPCHOST@I; s@ProxyGRPCPort:.*@\$CONFIG_PROXYGRPCPORT@I; s@Type:.*@\$CONFIG_TYPE@I; s@Admin:.*@\$CONFIG_ADMIN@I; s@ClientID:.*@\$CONFIG_CLIENTID@I; s@ClientSecret:.*@\$CONFIG_CLIENTSECRET@I" \${TEMP_DIR}/\${FILE_PATH}data/config.yaml
 
   # 逻辑是安装首次使用备份文件里的主题信息，之后使用本地最新的主题信息
   [[ -n "\$CONFIG_BRAND && -n "\$CONFIG_COOKIENAME && -n "\$CONFIG_THEME" ]] &&
@@ -709,7 +724,7 @@ EOF
     fi
   fi
 
-  # 赋执行权给 sh  文件
+  # 赋执行权给 sh 文件
   chmod +x ${WORK_DIR}/*.sh
 
   # 记录语言
@@ -757,13 +772,10 @@ menu_setting() {
 
   else
     OPTION[1]="1.  $(text 30)"
-    OPTION[2]="2.  $(text 36)"
-    OPTION[3]="3.  $(text 37)"
+    OPTION[2]="2.  $(text 37)"
 
     ACTION[1]() { check_dependencies; install; exit; }
-    [ "$L" = 'C' ] && ACTION[2]() { curl -L https://raw.fgit.cf/applexad/nezhascript/main/install.sh  -o nezha.sh && chmod +x nezha.sh && ./nezha.sh; exit; }
-    [ "$L" = 'E' ] && ACTION[2]() { curl -L https://raw.fgit.cf/applexad/nezhascript/main/install_en.sh  -o nezha.sh && chmod +x nezha.sh && ./nezha.sh; exit; }
-    [ "$L" = 'C' ] && ACTION[3]() { curl -L https://jihulab.com/nezha/dashboard/-/raw/master/script/install.sh -o nezha.sh && chmod +x nezha.sh && CN=true ./nezha.sh; exit; } || ACTION[3]() { curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install_en.sh  -o nezha.sh && chmod +x nezha.sh && sudo ./nezha.sh; exit; }
+    [ "$L" = 'C' ] && ACTION[2]() { curl -L https://jihulab.com/nezha/dashboard/-/raw/master/script/install.sh -o nezha.sh && chmod +x nezha.sh && CN=true ./nezha.sh; exit; } || ACTION[2]() { curl -L https://raw.githubusercontent.com/naiba/nezha/master/script/install_en.sh  -o nezha.sh && chmod +x nezha.sh && sudo ./nezha.sh; exit; }
   fi
 }
 
