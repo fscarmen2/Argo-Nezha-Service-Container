@@ -101,6 +101,7 @@ Argo 隧道认证方式有 json 和 token，使用两个方式其中之一。推
   | GH_REPO        | 否 | 在 github 上备份哪吒服务端数据库文件的 github 库 |
   | GH_EMAIL       | 否 | github 的邮箱，用于备份的 git 推送到远程库 |
   | GH_PAT         | 否 | github 的 PAT |
+  | NGINX          | 否 | 默认使用 gRPCwebProxy 应用来反代，这时可以不填写该变量；如需 nginx 反代，请设置该值为 1 |
   | ARGO_AUTH      | 是 | Json: 从 https://fscarmen.cloudflare.now.cc 获取的 Argo Json<br> Token: 从 Cloudflare 官网获取 |
   | ARGO_DOMAIN    | 是 | Argo 域名 |
 
@@ -135,7 +136,8 @@ docker run -dit \
            -e GH_CLIENTSECRET=<填获取的> \
            -e ARGO_AUTH='<填获取的 Argo json 或者 token>' \
            -e ARGO_DOMAIN=<填自定义的> \
-           -e GH_BACKUP_USER=<如与 GH_USER 一致，可以不要该环境变量> \
+           -e GH_BACKUP_USER=<选填，选填，选填! 如与 GH_USER 一致，可以不要该环境变量> \
+           -e NGINX=<选填，选填，选填! 如想用 nginx 替代 gRPCwebProxy 反代的话，把该值设置为1> \
            fscarmen/argo-nezha
 ```
 
@@ -157,7 +159,8 @@ services:
             - GH_CLIENTSECRET=<填获取的>
             - ARGO_AUTH='<填获取的 Argo json 或者 token>'
             - ARGO_DOMAIN=<填自定义的>
-            - GH_BACKUP_USER=<如与 GH_USER 一致，可以不要该环境变量>
+            - GH_BACKUP_USER=<选填，选填，选填! 如与 GH_USER 一致，可以不要该环境变量>
+            - NGINX=<选填，选填，选填! 如想用 nginx 替代 gRPCwebProxy 反代的话，把该值设置为1>
 ```
 
 

@@ -27,8 +27,47 @@ if [ ! -s /etc/supervisor/conf.d/damon.conf ]; then
     * ) error " $(text 2) "
   esac
 
+  # 用户选择使用 grpcwebproxy 还是 Nginx 作 gRPC 反代，默认为 grpcwebproxy；NGINX 的值非空即用 nginx
+  if [ -z "$NGINX" ]; then
+    wget -c https://github.com/fscarmen2/Argo-Nezha-Service-Container/releases/download/grpcwebproxy/grpcwebproxy_linux_$ARCH.tar.gz -qO- | tar xz -C $WORK_DIR
+    chmod +x $WORK_DIR/grpcwebproxy
+    GRPC_PROXY_RUN="$WORK_DIR/grpcwebproxy --server_tls_cert_file=$WORK_DIR/nezha.pem --server_tls_key_file=$WORK_DIR/nezha.key --server_http_tls_port=443 --backend_addr=localhost:5555 --backend_tls_noverify --server_http_max_read_timeout=300s --server_http_max_write_timeout=300s"
+  else
+    GRPC_PROXY_RUN='nginx -g "daemon off;"'
+    cat > /etc/nginx/nginx.conf  << EOF
+user www-data;
+worker_processes auto;
+pid /run/nginx.pid;
+include /etc/nginx/modules-enabled/*.conf;
+events {
+        worker_connections 768;
+        # multi_accept on;
+}
+http {
+  upstream grpcservers {
+    server localhost:5555;
+    keepalive 1024;
+  }
+  server {
+    listen 127.0.0.1:443 ssl http2;
+    server_name $ARGO_DOMAIN;
+    ssl_certificate          $WORK_DIR/nezha.pem;
+    ssl_certificate_key      $WORK_DIR/nezha.key;
+    underscores_in_headers on;
+    location / {
+      grpc_read_timeout 300s;
+      grpc_send_timeout 300s;
+      grpc_socket_keepalive on;
+      grpc_pass grpc://grpcservers;
+    }
+    access_log  /dev/null;
+    error_log   /dev/null;
+  }
+}
+EOF
+  fi
+
   # 下载需要的应用
-  wget -c https://github.com/fscarmen2/Argo-Nezha-Service-Container/releases/download/grpcwebproxy/grpcwebproxy_linux_$ARCH.tar.gz -qO- | tar xz -C $WORK_DIR
   wget -qO $WORK_DIR/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$ARCH
   wget -O $WORK_DIR/nezha-agent.zip https://github.com/nezhahq/agent/releases/latest/download/nezha-agent_linux_$ARCH.zip
   unzip $WORK_DIR/nezha-agent.zip -d $WORK_DIR/
@@ -144,7 +183,7 @@ fi
 # 分步骤处理
 if [[ "\${DASHBOARD_UPDATE}\${CLOUDFLARED_UPDATE}\${IS_BACKUP}\${FORCE_UPDATE}" =~ true ]]; then
   # 停掉面板才能备份
-  hint "\n\$(supervisorctl stop agent nezha grpcwebproxy)\n"
+  hint "\n\$(supervisorctl stop agent nezha grpcproxy)\n"
   sleep 2
   if [ "\$(supervisorctl status nezha | awk '{print \$2}')" = 'STOPPED' ]; then
     # 更新面板和 resource
@@ -200,7 +239,7 @@ if [[ "\${DASHBOARD_UPDATE}\${CLOUDFLARED_UPDATE}\${IS_BACKUP}\${FORCE_UPDATE}" 
       hint "\n Start Nezha-dashboard \n"
     fi
   fi
-  hint "\n\$(supervisorctl start agent nezha grpcwebproxy)\n"; sleep 2
+  hint "\n\$(supervisorctl start agent nezha grpcproxy)\n"; sleep 2
 fi
 
 [ \$(supervisorctl status all | grep -c "RUNNING") = \$(grep -c '\[program:.*\]' /etc/supervisor/conf.d/damon.conf) ] && info "\n Done! \n" || error "\n Fail! \n"
@@ -283,7 +322,7 @@ DOWNLOAD_URL=https://raw.githubusercontent.com/\$GH_BACKUP_USER/\$GH_REPO/main/\
 wget --header="Authorization: token \$GH_PAT" --header='Accept: application/vnd.github.v3.raw' -O \$TEMP_DIR/backup.tar.gz "\$DOWNLOAD_URL"
 
 if [ -e \$TEMP_DIR/backup.tar.gz ]; then
-  hint "\n\$(supervisorctl stop agent nezha grpcwebproxy)\n"
+  hint "\n\$(supervisorctl stop agent nezha grpcproxy)\n"
 
   # 容器版的备份旧方案是 /dashboard 文件夹，新方案是备份工作目录 < WORK_DIR > 下的文件，此判断用于根据压缩包里的目录架构判断到哪个目录下解压，以兼容新旧备份方案
   FILE_LIST=\$(tar tzf \$TEMP_DIR/backup.tar.gz)
@@ -319,7 +358,7 @@ if [ -e \$TEMP_DIR/backup.tar.gz ]; then
   # 在本地记录还原文件名
   echo "\$ONLINE" > \$WORK_DIR/dbfile
   rm -f \$TEMP_DIR/backup.tar.gz
-  hint "\n\$(supervisorctl start agent nezha grpcwebproxy)\n"; sleep 2
+  hint "\n\$(supervisorctl start agent nezha grpcproxy)\n"; sleep 2
 fi
 
 [ \$(supervisorctl status all | grep -c "RUNNING") = \$(grep -c '\[program:.*\]' /etc/supervisor/conf.d/damon.conf) ] && info "\n Done! \n" || error "\n Fail! \n"
@@ -338,8 +377,8 @@ nodaemon=true
 logfile=/dev/null
 pidfile=/run/supervisord.pid
 
-[program:grpcwebproxy]
-command=$WORK_DIR/grpcwebproxy --server_tls_cert_file=$WORK_DIR/nezha.pem --server_tls_key_file=$WORK_DIR/nezha.key --server_http_tls_port=443 --backend_addr=localhost:5555 --backend_tls_noverify --server_http_max_read_timeout=300s --server_http_max_write_timeout=300s
+[program:grpcproxy]
+command=$GRPC_PROXY_RUN
 autostart=true
 autorestart=true
 stderr_logfile=/dev/null
@@ -368,7 +407,7 @@ stdout_logfile=/dev/null
 EOF
 
   # 赋执行权给 sh 及所有应用
-  chmod +x $WORK_DIR/{grpcwebproxy,cloudflared,nezha-agent,*.sh}
+  chmod +x $WORK_DIR/{cloudflared,nezha-agent,*.sh}
 
 fi
 

@@ -9,7 +9,7 @@ COPY entrypoint.sh /dashboard/
 COPY sqlite.db /dashboard/data/
 
 RUN apt-get update &&\
-    apt-get -y install openssh-server wget iproute2 vim git cron unzip supervisor systemctl &&\
+    apt-get -y install openssh-server wget iproute2 vim git cron unzip supervisor systemctl nginx &&\
     chmod +x entrypoint.sh &&\
     git config --global core.bigFileThreshold 1k &&\
     git config --global core.compression 0 &&\

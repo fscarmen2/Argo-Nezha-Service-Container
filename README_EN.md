@@ -101,6 +101,7 @@ Variables used
   | GH_REPO | No | The github repository for backing up Nezha's server-side database files on github |
   | GH_EMAIL | No | github's mailbox for git push backups to remote repositories |
   | GH_PAT | No | github's PAT |
+  | NGINX  | No | If you want to use nginx instead of gRPCwebProxy for reverse proxying, set this value to 1 |
   | ARGO_AUTH | Yes | Argo Json from https://fscarmen.cloudflare.now.cc<br>Argo token from Cloudflare official website  |
   | ARGO_DOMAIN | Yes | Argo domain |
 
@@ -135,7 +136,8 @@ docker run -dit \
            -e GH_CLIENTSECRET=<fill in acquired> \
            -e ARGO_AUTH='<Fill in the fetched Argo json or token>' \
            -e ARGO_DOMAIN=<fill in customized> \
-           -e GH_BACKUP_USER=<If it is consistent with GH_USER, you can leave it blank> \
+           -e GH_BACKUP_USER=<Optional, Optional, Optional! If it is consistent with GH_USER, you can leave it blank> \
+           -e NGINX=<Optional, Optional, Optional! If you want to use nginx instead of gRPCwebProxy for reverse proxying, set this value to 1> \
            fscarmen/argo-nezha
 ```
 
@@ -157,7 +159,8 @@ services.
             - GH_CLIENTSECRET=<fill in fetched>
             - ARGO_AUTH='<Fill in the fetched Argo json or token>'
             - ARGO_DOMAIN=<fill in customized>
-            - GH_BACKUP_USER=<If it is consistent with GH_USER, you can leave it blank>
+            - GH_BACKUP_USER=<Optional, Optional, Optional! If it is consistent with GH_USER, you can leave it blank>
+            - NGINX=<Optional, Optional, Optional! If you want to use nginx instead of gRPCwebProxy for reverse proxying, set this value to 1>
 ```
 
 

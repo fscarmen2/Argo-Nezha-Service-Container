@@ -87,6 +87,10 @@ E[36]="Downloading the \${FAILED[*]} failed. Installation aborted. Feedback: [ht
 C[36]="下载 \${FAILED[*]} 失败，安装中止，问题反馈:[https://github.com/fscarmen2/Argo-Nezha-Service-Container/issues]"
 E[37]="Install Nezha's official VPS or docker version (https://github.com/naiba/nezha)"
 C[37]="安装哪吒官方 VPS 或 Docker 版本 (https://github.com/naiba/nezha)"
+E[38]="Please choose gRPC proxy mode:\n 1. gRPCwebProxy (default) \n 2. Nginx"
+C[38]="请选择 gRPC 代理模式:\n 1. gRPCwebProxy (默认) \n 2. Nginx"
+E[39]="To uninstall Nginx press [y], it is not uninstalled by default:"
+C[39]="如要卸载 Nginx 请按 [y]，默认不卸载:"
 
 # 自定义字体彩色，read 函数
 warning() { echo -e "\033[31m\033[01m$*\033[0m"; }  # 红色
@@ -149,7 +153,6 @@ check_install() {
 
   if [ "$STATUS" = "$(text 26)" ]; then
     { wget -qO $TEMP_DIR/cloudflared ${GH_PROXY}https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$ARCH >/dev/null 2>&1 && chmod +x $TEMP_DIR/cloudflared >/dev/null 2>&1; }&
-    { wget -c ${GH_PROXY}https://github.com/fscarmen2/Argo-Nezha-Service-Container/releases/download/grpcwebproxy/grpcwebproxy_linux_$ARCH.tar.gz -qO- | tar xz -C $TEMP_DIR >/dev/null 2>&1; }&
     { DASHBOARD_LATEST=$(wget -qO- "https://api.github.com/repos/naiba/nezha/releases/latest" | awk -F '"' '/"tag_name"/{print $4}' || echo 'v0.15.17')
       wget -qO $TEMP_DIR/dashboard.zip ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip
       unzip -q $TEMP_DIR/dashboard.zip -d $TEMP_DIR 2>&1
@@ -257,12 +260,12 @@ certificate() {
 }
 
 dashboard_variables() {
-  [ -z "$GH_USER"] && reading " (1/9) $(text 9) " GH_USER
-  [ -z "$GH_CLIENTID"] && reading "\n (2/9) $(text 10) " GH_CLIENTID
-  [ -z "$GH_CLIENTSECRET"] && reading "\n (3/9) $(text 11) " GH_CLIENTSECRET
+  [ -z "$GH_USER"] && reading " (1/10) $(text 9) " GH_USER
+  [ -z "$GH_CLIENTID"] && reading "\n (2/10) $(text 10) " GH_CLIENTID
+  [ -z "$GH_CLIENTSECRET"] && reading "\n (3/10) $(text 11) " GH_CLIENTSECRET
   local a=5
   until [[ "$ARGO_AUTH" =~ TunnelSecret || "$ARGO_AUTH" =~ ^[A-Z0-9a-z=]{120,250}$ || "$ARGO_AUTH" =~ .*cloudflared.*service[[:space:]]+install[[:space:]]+[A-Z0-9a-z=]{1,100} ]]; do
-    [ "$a" = 0 ] && error "\n $(text 3) \n" || reading "\n (4/9) $(text 12) " ARGO_AUTH
+    [ "$a" = 0 ] && error "\n $(text 3) \n" || reading "\n (4/10) $(text 12) " ARGO_AUTH
     if [[ "$ARGO_AUTH" =~ TunnelSecret ]]; then
       ARGO_JSON=${ARGO_AUTH//[ ]/}
     elif [[ "$ARGO_AUTH" =~ ^[A-Z0-9a-z=]{120,250}$ ]]; then
@@ -276,18 +279,21 @@ dashboard_variables() {
   done
 
   # 处理可能输入的错误，去掉开头和结尾的空格，去掉最后的 :
-  [ -z "$ARGO_DOMAIN"] && reading "\n (5/9) $(text 13) " ARGO_DOMAIN
+  [ -z "$ARGO_DOMAIN"] && reading "\n (5/10) $(text 13) " ARGO_DOMAIN
   ARGO_DOMAIN=$(sed 's/[ ]*//g; s/:[ ]*//' <<< "$ARGO_DOMAIN")
   { certificate; }&
 
+  # 用户选择使用 grpcwebproxy 还是 Nginx 作 gRPC 反代，默认为 grpcwebproxy
+  [ -z "$NGINX" ] && info "\n (6/10) $(text 38) \n" && reading " $(text 24) " NGINX
+
   [[ -z "$GH_USER" || -z "$GH_CLIENTID" || -z "$GH_CLIENTSECRET" || -z "$ARGO_AUTH" || -z "$ARGO_DOMAIN" ]] && error "\n $(text 18) "
 
-  [ -z "$GH_REPO"] && reading "\n (6/9) $(text 14) " GH_REPO
+  [ -z "$GH_REPO"] && reading "\n (7/10) $(text 14) " GH_REPO
   if [ -n "$GH_REPO" ]; then
-    reading "\n (7/9) $(text 15) " GH_BACKUP_USER
+    reading "\n (8/10) $(text 15) " GH_BACKUP_USER
     GH_BACKUP_USER=${GH_BACKUP_USER:-$GH_USER}
-    [ -z "$GH_EMAIL"] && reading "\n (8/9) $(text 16) " GH_EMAIL
-    [ -z "$GH_PAT"] && reading "\n (9/9) $(text 17) " GH_PAT
+    [ -z "$GH_EMAIL"] && reading "\n (9/10) $(text 16) " GH_EMAIL
+    [ -z "$GH_PAT"] && reading "\n (10/10) $(text 17) " GH_PAT
   fi
 }
 
@@ -298,17 +304,61 @@ install() {
   check_port
 
   hint "\n $(text 25) "
+
+  # 根据 grpcwebproxy 或 nginx 作处理
+  if [ "$NGINX" != '2' ]; then
+    wget -c ${GH_PROXY}https://github.com/fscarmen2/Argo-Nezha-Service-Container/releases/download/grpcwebproxy/grpcwebproxy_linux_$ARCH.tar.gz -qO- | tar xz -C $TEMP_DIR >/dev/null 2>&1
+    chmod +x $WORK_DIR/grpcwebproxy
+    GRPC_PROXY_RUN="nohup ${WORK_DIR}/grpcwebproxy --run_http_server=false --server_tls_cert_file=${WORK_DIR}/nezha.pem --server_tls_key_file=${WORK_DIR}/nezha.key --server_http_tls_port=$GRPC_PROXY_PORT --backend_addr=localhost:${GRPC_PORT} --backend_tls_noverify --server_http_max_read_timeout=300s --server_http_max_write_timeout=300s >/dev/null 2>&1 &"
+  else
+    [ ! $(type -p nginx) ] && ${PACKAGE_INSTALL[int]} nginx
+    GRPC_PROXY_RUN="nginx -c $WORK_DIR/nginx.conf"
+    cat > $TEMP_DIR/nginx.conf  << EOF
+user www-data;
+worker_processes auto;
+pid /run/nginx.pid;
+include /etc/nginx/modules-enabled/*.conf;
+events {
+        worker_connections 768;
+        # multi_accept on;
+}
+http {
+  upstream grpcservers {
+    server localhost:$GRPC_PORT;
+    keepalive 1024;
+  }
+  server {
+    listen 127.0.0.1:$GRPC_PROXY_PORT ssl http2;
+    server_name $ARGO_DOMAIN;
+    ssl_certificate          $WORK_DIR/nezha.pem;
+    ssl_certificate_key      $WORK_DIR/nezha.key;
+    underscores_in_headers on;
+    location / {
+      grpc_read_timeout 300s;
+      grpc_send_timeout 300s;
+      grpc_socket_keepalive on;
+      grpc_pass grpc://grpcservers;
+    }
+    access_log  /dev/null;
+    error_log   /dev/null;
+  }
+}
+EOF
+  fi
+
   wait
 
   # 检测下载的文件或文件夹是否齐
-  for f in ${TEMP_DIR}/{cloudflared,grpcwebproxy,app,nezha.key,nezha.csr,nezha.pem}; do
+  for f in ${TEMP_DIR}/{cloudflared,app,nezha.key,nezha.csr,nezha.pem}; do
     [ ! -s "$f" ] && FAILED+=("${f//${TEMP_DIR}\//}")
   done
+  [ "$NGINX" != '2' ] && [ ! -s $TEMP_DIR/grpcwebproxy ] && FAILED+=("grpcwebproxy")
   [ "${#FAILED[@]}" -gt 0 ] && error "\n $(text 36) "
 
   # 从临时文件夹复制已下载的所有到工作文件夹
   [ ! -d ${WORK_DIR}/data ] && mkdir -p ${WORK_DIR}/data
-  cp -r $TEMP_DIR/{app,cloudflared,grpcwebproxy,nezha.*} $WORK_DIR
+  cp -r $TEMP_DIR/{app,cloudflared,nezha.*} $WORK_DIR
+  [ "$NGINX" != '2' ] && cp -f $TEMP_DIR/grpcwebproxy $WORK_DIR || cp -f $TEMP_DIR/nginx.conf $WORK_DIR
   rm -rf $TEMP_DIR
 
   # 根据参数生成哪吒服务端配置文件
@@ -350,7 +400,7 @@ EOF
   # 判断 ARGO_AUTH 为 json 还是 token
   # 如为 json 将生成 argo.json 和 argo.yml 文件
   if [ -n "$ARGO_JSON" ]; then
-    ARGO_RUNS="${WORK_DIR}/cloudflared tunnel --edge-ip-version auto --config ${WORK_DIR}/argo.yml run"
+    ARGO_RUN="${WORK_DIR}/cloudflared tunnel --edge-ip-version auto --config ${WORK_DIR}/argo.yml run"
 
     echo "$ARGO_JSON" > ${WORK_DIR}/argo.json
 
@@ -373,25 +423,30 @@ EOF
 
   # 如为 token 时
   elif [ -n "$ARGO_TOKEN" ]; then
-    ARGO_RUNS="${WORK_DIR}/cloudflared tunnel --edge-ip-version auto --protocol http2 run --token ${ARGO_TOKEN}"
+    ARGO_RUN="${WORK_DIR}/cloudflared tunnel --edge-ip-version auto --protocol http2 run --token ${ARGO_TOKEN}"
   fi
 
   # 生成应用启动停止脚本及进程守护
   cat > ${WORK_DIR}/run.sh << EOF
 #!/usr/bin/env bash
 SYSTEM=$SYSTEM
+NGINX=$NGINX
 
 if [ "\$1" = 'start' ]; then
   cd ${WORK_DIR}
 
-  nohup ${WORK_DIR}/grpcwebproxy --run_http_server=false --server_tls_cert_file=${WORK_DIR}/nezha.pem --server_tls_key_file=${WORK_DIR}/nezha.key --server_http_tls_port=$GRPC_PROXY_PORT --backend_addr=localhost:${GRPC_PORT} --backend_tls_noverify --server_http_max_read_timeout=300s --server_http_max_write_timeout=300s >/dev/null 2>&1 &
+  $GRPC_PROXY_RUN
 
   nohup ${WORK_DIR}/app >/dev/null 2>&1 &
 
-  $ARGO_RUNS
+  $ARGO_RUN
 
 elif [ "\$1" = 'stop' ]; then
-  [ "\$SYSTEM" = 'Alpine' ] && ps -ef | awk '/\/opt\/nezha\/dashboard\/(cloudflared|grpcwebproxy|app)/{print \$1}' | xargs kill -9 || ps -ef | awk '/\/opt\/nezha\/dashboard\/(cloudflared|grpcwebproxy|app)/{print \$2}' | xargs kill -9
+  if [ "\$NGINX" = '2' ]; then
+    [ "\$SYSTEM" = 'Alpine' ] && ps -ef | awk '/\/opt\/nezha\/dashboard\/(cloudflared|app)/{print \$1}' | xargs kill -9 || ps -ef | awk '/\/opt\/nezha\/dashboard\/(cloudflared|app)/{print \$2}' | xargs kill -9
+  else
+    [ "\$SYSTEM" = 'Alpine' ] && ps -ef | awk '/\/opt\/nezha\/dashboard\/(cloudflared|grpcwebproxy|app)/{print \$1}' | xargs kill -9 || ps -ef | awk '/\/opt\/nezha\/dashboard\/(cloudflared|grpcwebproxy|app)/{print \$2}' | xargs kill -9
+  fi
 fi
 EOF
 
@@ -753,6 +808,8 @@ EOF
 # 卸载
 uninstall() {
   cmd_systemctl disable
+  grep -q 'NGINX=2' ${WORK_DIR}/dashboard/run.sh && [ $(ps -ef | grep 'nginx' | wc -l) -le 1 ] && reading " $(text 39) " REMOVE_NGINX
+  [[ "$REMOVE_NGINX" = [Yy] ]] && ${PACKAGE_UNINSTALL[int]} nginx
   rm -rf /etc/systemd/system/nezha-dashboard.service ${WORK_DIR}
   if [ "$SYSTEM" = 'Alpine' ]; then
     sed -i "/\/opt\/nezha\/dashboard/d" /var/spool/cron/crontabs/root
