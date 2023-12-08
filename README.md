@@ -2,8 +2,6 @@
 
 使用 Argo 隧道的哪吒服务端
 
-当前镜像版本: v0.15.18
-
 Documentation: [English version](https://github.com/fscarmen2/Argo-Nezha-Service-Container/blob/main/README_EN.md) | 中文版
 
 * * *
