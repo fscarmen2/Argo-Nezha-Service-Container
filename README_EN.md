@@ -17,6 +17,7 @@ Documentation: English version | [中文版](https://github.com/fscarmen2/Argo-N
 - [Client Access](README_EN.md#client-access)
 - [SSH Access](README_EN.md#ssh-access)
 - [Manual Backup data](README_EN.md#manual-backup-data)
+- [Manual Rerew backup and restore scrpits](README_EN.md#manual-renew-backup-and-restore-scrpits)
 - [Auto Restore Backup](README_EN.md#automatically-restore-backups)
 - [Manual Restore Backup](README_EN.md#manually-restore-the-backup)
 - [Migrating data](README_EN.md#migrating-data)
@@ -92,16 +93,17 @@ Image `fscarmen/argo-nezha:latest`, supports amd64 and arm64 architectures.
 Variables used
   | Variable Name | Required | Remarks |
   | ------------ | ------ | ---- |
-  | GH_USER | Yes | github username for panel admin authorization |
-  | GH_CLIENTID | yes | apply on github |
-  | GH_CLIENTSECRET | yes | apply on github |
-  | GH_BACKUP_USER | No | The github username for backing up Nezha's server-side database on github, if not filled in, it is the same as the account GH_USER for panel management authorization |
-  | GH_REPO | No | The github repository for backing up Nezha's server-side database files on github |
-  | GH_EMAIL | No | github's mailbox for git push backups to remote repositories |
-  | GH_PAT | No | github's PAT |
-  | NGINX  | No | If you want to use nginx instead of gRPCwebProxy for reverse proxying, set this value to 1 |
-  | ARGO_AUTH | Yes | Argo Json from https://fscarmen.cloudflare.now.cc<br>Argo token from Cloudflare official website  |
-  | ARGO_DOMAIN | Yes | Argo domain |
+  | GH_USER            | Yes | github username for panel admin authorization |
+  | GH_CLIENTID        | yes | apply on github |
+  | GH_CLIENTSECRET    | yes | apply on github |
+  | GH_BACKUP_USER     | No | The github username for backing up Nezha's server-side database on github, if not filled in, it is the same as the account GH_USER for panel management authorization |
+  | GH_REPO            | No | The github repository for backing up Nezha's server-side database files on github |
+  | GH_EMAIL           | No | github's mailbox for git push backups to remote repositories |
+  | GH_PAT             | No | github's PAT |
+  | REVERSE_PROXY_MODE | No | If you want to use gRPCwebProxy instead of nginx for reverse proxying, set this value to `grpcwebproxy` |
+  | ARGO_AUTH          | Yes | Argo Json from https://fscarmen.cloudflare.now.cc<br>Argo token from Cloudflare official website  |
+  | ARGO_DOMAIN        | Yes | Argo domain |
+  | NO_AUTO_RENEW      | No | The latest backup and restore scripts are synchronized online regularly every day. If you don't need this feature, set this variable and assign it a value of `1` |
 
 Koyeb
 
@@ -135,7 +137,8 @@ docker run -dit \
            -e ARGO_AUTH='<Fill in the fetched Argo json or token>' \
            -e ARGO_DOMAIN=<fill in customized> \
            -e GH_BACKUP_USER=<Optional, Optional, Optional! If it is consistent with GH_USER, you can leave it blank> \
-           -e NGINX=<Optional, Optional, Optional! If you want to use nginx instead of gRPCwebProxy for reverse proxying, set this value to 1> \
+           -e REVERSE_PROXY_MODE=<Optional, Optional, Optional! If you want to use gRPCwebProxy instead of nginx for reverse proxying, set this value to `grpcwebproxy`> \
+           -e NO_AUTO_RENEW=<Optional, Optional, Optional! If you don't need synchronized online, set this variable and assign it a value of `1`>
            fscarmen/argo-nezha
 ```
 
@@ -158,7 +161,8 @@ services.
             - ARGO_AUTH='<Fill in the fetched Argo json or token>'
             - ARGO_DOMAIN=<fill in customized>
             - GH_BACKUP_USER=<Optional, Optional, Optional! If it is consistent with GH_USER, you can leave it blank>
-            - NGINX=<Optional, Optional, Optional! If you want to use nginx instead of gRPCwebProxy for reverse proxying, set this value to 1>
+            - REVERSE_PROXY_MODE=<Optional, Optional, Optional! If you want to use gRPCwebProxy instead of nginx for reverse proxying, set this value to `grpcwebproxy`>
+            - NO_AUTO_RENEW=<Optional, Optional, Optional! If you don't need synchronized online, set this variable and assign it a value of `1`>
 ```
 
 
@@ -197,6 +201,11 @@ Method 1: Change the contents of the `README.md` file in the Github backup repos
 Method 2: After ssh, run `/dashboard/backup.sh` for container version; `/opt/nezha/dashboard/backup.sh` for VPS host version.
 
 
+## Manual Rerew backup and restore scrpits
+
+After ssh, run `/dashboard/renew.sh` for container version; `/opt/nezha/dashboard/renew.sh` for VPS host version.
+
+
 ## Automatically restore backups
 * Change the name of the file to be restored to `README.md` in the github backup repository, the timer service will check for updates every minute and record the last synchronized filename in the local `/dbfile` to compare with the online file content.
 
@@ -230,6 +239,7 @@ tar czvf dashboard.tar.gz /dashboard
 |-- argo.yml             # Argo tunnel yml file, used for streaming web, gRPC and ssh protocols under a single tunnel with different domains.
 |-- backup.sh            # Backup data scripts
 |-- restore.sh           # Restore backup scripts
+|-- renew.sh             # Scripts to update backup and restore files online
 |-- dbfile               # Record the name of the latest restore or backup file
 |-- resource             # Folders of information on panel themes, languages, flags, etc.
 |-- data
