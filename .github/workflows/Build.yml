@@ -6,7 +6,7 @@ on:
 jobs:
   Building:
       runs-on: ubuntu-latest
-      name: "Build Argo-Nezha images"
+      name: "Build image"
       env:
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
@@ -34,10 +34,5 @@ jobs:
         uses: docker/build-push-action@v5.1.0
         with:
           push: true
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          platforms: linux/amd64, linux/arm64, linux/arm/v7
           tags: ${{ env.DOCKERHUB_REPOSITORY }}
-
-      - name: Upload to repository
-        uses: stefanzweifel/git-auto-commit-action@v5.0.0
-        with:
-          commit_message: Push images ${{ env.VERSION }} by Github Actions, ${{ env.DATE }}

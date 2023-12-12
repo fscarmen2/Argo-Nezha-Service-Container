@@ -3,12 +3,16 @@
 # 首次运行时执行以下流程，再次运行时存在 /etc/supervisor/conf.d/damon.conf 文件，直接到最后一步
 if [ ! -s /etc/supervisor/conf.d/damon.conf ]; then
 
-  # 设置 Github CDN
+  # 设置 Github CDN 及若干变量
   GH_PROXY=https://mirror.ghproxy.com/
+  GRPC_PROXY_PORT=443
+  GRPC_PORT=5555
+  WEB_PORT=80
+  CADDY_HTTP_PORT=2052
+  WORK_DIR=/dashboard
 
   # 如不分离备份的 github 账户，默认与哪吒登陆的 github 账户一致
   GH_BACKUP_USER=${GH_BACKUP_USER:-$GH_USER}
-  WORK_DIR=/dashboard
 
   error() { echo -e "\033[31m\033[01m$*\033[0m" && exit 1; } # 红色
   info() { echo -e "\033[32m\033[01m$*\033[0m"; }   # 绿色
@@ -35,12 +39,12 @@ if [ ! -s /etc/supervisor/conf.d/damon.conf ]; then
     * ) error " $(text 2) "
   esac
 
-  # 用户选择使用 Nginx 还是 grpcwebproxy 作 gRPC 反代，默认为 nginx；如需使用 grpcwebproxy，把 REVERSE_PROXY_MODE 的值设为 grpcwebproxy
+  # 用户选择使用 gRPC 反代方式: Nginx / Caddy / grpcwebproxy，默认为 Caddy；如需使用 grpcwebproxy，把 REVERSE_PROXY_MODE 的值设为 nginx 或 grpcwebproxy
   if [ "$REVERSE_PROXY_MODE" = 'grpcwebproxy' ]; then
     wget -c ${GH_PROXY}https://github.com/fscarmen2/Argo-Nezha-Service-Container/releases/download/grpcwebproxy/grpcwebproxy_linux_$ARCH.tar.gz -qO- | tar xz -C $WORK_DIR
     chmod +x $WORK_DIR/grpcwebproxy
-    GRPC_PROXY_RUN="$WORK_DIR/grpcwebproxy --server_tls_cert_file=$WORK_DIR/nezha.pem --server_tls_key_file=$WORK_DIR/nezha.key --server_http_tls_port=443 --backend_addr=localhost:5555 --backend_tls_noverify --server_http_max_read_timeout=300s --server_http_max_write_timeout=300s"
-  else
+    GRPC_PROXY_RUN="$WORK_DIR/grpcwebproxy --server_tls_cert_file=$WORK_DIR/nezha.pem --server_tls_key_file=$WORK_DIR/nezha.key --server_http_tls_port=$GRPC_PROXY_PORT --backend_addr=localhost:$GRPC_PORT --backend_tls_noverify --server_http_max_read_timeout=300s --server_http_max_write_timeout=300s"
+  elif [ "$REVERSE_PROXY_MODE" = 'nginx' ]; then
     GRPC_PROXY_RUN='nginx -g "daemon off;"'
     cat > /etc/nginx/nginx.conf  << EOF
 user www-data;
@@ -53,11 +57,11 @@ events {
 }
 http {
   upstream grpcservers {
-    server localhost:5555;
+    server localhost:$GRPC_PORT;
     keepalive 1024;
   }
   server {
-    listen 127.0.0.1:443 ssl http2;
+    listen 127.0.0.1:$GRPC_PROXY_PORT ssl http2;
     server_name $ARGO_DOMAIN;
     ssl_certificate          $WORK_DIR/nezha.pem;
     ssl_certificate_key      $WORK_DIR/nezha.key;
@@ -71,6 +75,25 @@ http {
     access_log  /dev/null;
     error_log   /dev/null;
   }
+}
+EOF
+  else
+    CADDY_LATEST=$(wget -qO- "https://api.github.com/repos/caddyserver/caddy/releases/latest" | awk -F [v\"] '/"tag_name"/{print $5}' || echo '2.7.6')
+    wget -c ${GH_PROXY}https://github.com/caddyserver/caddy/releases/download/v${CADDY_LATEST}/caddy_${CADDY_LATEST}_linux_${ARCH}.tar.gz -qO- | tar xz -C $WORK_DIR caddy
+    GRPC_PROXY_RUN="$WORK_DIR/caddy run --config $WORK_DIR/Caddyfile --watch"
+    cat > $WORK_DIR/Caddyfile  << EOF
+{
+    http_port $CADDY_HTTP_PORT
+}
+
+:$GRPC_PROXY_PORT {
+    reverse_proxy {
+        to localhost:$GRPC_PORT
+        transport http {
+            versions h2c 2
+        }
+    }
+    tls $WORK_DIR/nezha.pem $WORK_DIR/nezha.key
 }
 EOF
   fi
@@ -89,11 +112,11 @@ EOF
   [ ! -d data ] && mkdir data
   cat > ${WORK_DIR}/data/config.yaml << EOF
 Debug: false
-HTTPPort: 80
+HTTPPort: $WEB_PORT
 Language: zh-CN
-GRPCPort: 5555
+GRPCPort: $GRPC_PORT
 GRPCHost: $ARGO_DOMAIN
-ProxyGRPCPort: 443
+ProxyGRPCPort: $GRPC_PROXY_PORT
 TLS: true
 Oauth2:
   Type: "github" #Oauth2 登录接入类型，github/gitlab/jihulab/gitee/gitea ## Argo-容器版本只支持 github
@@ -126,7 +149,7 @@ protocol: http2
 
 ingress:
   - hostname: $ARGO_DOMAIN
-    service: https://localhost:443
+    service: https://localhost:$GRPC_PROXY_PORT
     path: /proto.NezhaService/*
     originRequest:
       http2Origin: true
@@ -135,7 +158,7 @@ ingress:
     service: ssh://localhost:22
     path: /$GH_CLIENTID/*
   - hostname: $ARGO_DOMAIN
-    service: http://localhost:80
+    service: http://localhost:$WEB_PORT
   - service: http_status:404
 EOF
 
@@ -236,7 +259,7 @@ stderr_logfile=/dev/null
 stdout_logfile=/dev/null
 
 [program:agent]
-command=$WORK_DIR/nezha-agent -s localhost:5555 -p abcdefghijklmnopqr
+command=$WORK_DIR/nezha-agent -s localhost:$GRPC_PORT -p abcdefghijklmnopqr
 autostart=true
 autorestart=true
 stderr_logfile=/dev/null

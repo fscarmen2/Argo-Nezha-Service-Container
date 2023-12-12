@@ -5,7 +5,7 @@ GH_PROXY=https://mirror.ghproxy.com/
 WORK_DIR='/opt/nezha/dashboard'
 TEMP_DIR='/tmp/nezha'
 START_PORT='5000'
-NEED_PORTS=3 # web , gRPC , gRPC proxy
+NEED_PORTS=4 # web , gRPC , gRPC proxy, caddy http
 
 trap "rm -rf $TEMP_DIR; echo -e '\n' ;exit" INT QUIT TERM EXIT
 
@@ -87,8 +87,8 @@ E[36]="Downloading the \${FAILED[*]} failed. Installation aborted. Feedback: [ht
 C[36]="下载 \${FAILED[*]} 失败，安装中止，问题反馈:[https://github.com/fscarmen2/Argo-Nezha-Service-Container/issues]"
 E[37]="Install Nezha's official VPS or docker version (https://github.com/naiba/nezha)"
 C[37]="安装哪吒官方 VPS 或 Docker 版本 (https://github.com/naiba/nezha)"
-E[38]="Please choose gRPC proxy mode:\n 1. Nginx (default) \n 2. gRPCwebProxy"
-C[38]="请选择 gRPC 代理模式:\n 1. Nginx (默认) \n 2. gRPCwebProxy"
+E[38]="Please choose gRPC proxy mode:\n 1. Caddy (default)\n 2. Nginx\n 3. gRPCwebProxy"
+C[38]="请选择 gRPC 代理模式:\n 1. Caddy (默认)\n 2. Nginx\n 3. gRPCwebProxy"
 E[39]="To uninstall Nginx press [y], it is not uninstalled by default:"
 C[39]="如要卸载 Nginx 请按 [y]，默认不卸载:"
 E[40]="Default: enable automatic online synchronization of the latest backup.sh and restore.sh scripts. If you do not want this feature, enter [n]:"
@@ -128,7 +128,7 @@ check_arch() {
   esac
 }
 
-# 检查可用 port 函数，要求三个
+# 检查可用 port 函数，要求4个
 check_port() {
   until [ "$START_PORT" -gt 65530 ]; do
     if [ "$SYSTEM" = 'Alpine' ]; then
@@ -144,6 +144,7 @@ check_port() {
     GRPC_PROXY_PORT=${FREE_PORT[0]}
     WEB_PORT=${FREE_PORT[1]}
     GRPC_PORT=${FREE_PORT[2]}
+    CADDY_HTTP_PORT=${FREE_PORT[3]}
   else
     error "\n $(text 33) \n"
   fi
@@ -156,9 +157,9 @@ check_install() {
   if [ "$STATUS" = "$(text 26)" ]; then
     { wget -qO $TEMP_DIR/cloudflared ${GH_PROXY}https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$ARCH >/dev/null 2>&1 && chmod +x $TEMP_DIR/cloudflared >/dev/null 2>&1; }&
     { DASHBOARD_LATEST=$(wget -qO- "https://api.github.com/repos/naiba/nezha/releases/latest" | awk -F '"' '/"tag_name"/{print $4}' || echo 'v0.15.17')
-      wget -qO $TEMP_DIR/dashboard.zip ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip
+      wget -qO $TEMP_DIR/dashboard.zip ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip >/dev/null 2>&1
       unzip -q $TEMP_DIR/dashboard.zip -d $TEMP_DIR 2>&1
-      mv -f $TEMP_DIR/dist/dashboard-linux-$ARCH $TEMP_DIR/app; }&
+      mv -f $TEMP_DIR/dist/dashboard-linux-$ARCH $TEMP_DIR/app >/dev/null 2>&1; }&
   fi
 }
 
@@ -285,9 +286,13 @@ dashboard_variables() {
   ARGO_DOMAIN=$(sed 's/[ ]*//g; s/:[ ]*//' <<< "$ARGO_DOMAIN")
   { certificate; }&
 
-  # 用户选择使用 Nginx 还是 grpcwebproxy 作 gRPC 反代，默认为 Nginx
+  # # 用户选择使用 gRPC 反代方式: Nginx / Caddy / grpcwebproxy，默认为 Caddy
   [ -z "$REVERSE_PROXY_MODE" ] && info "\n (6/11) $(text 38) \n" && reading " $(text 24) " REVERSE_PROXY_CHOOSE
-  [ "$REVERSE_PROXY_CHOOSE" = 2 ] && REVERSE_PROXY_MODE=grpcwebproxy || REVERSE_PROXY_MODE=nginx
+  case "$REVERSE_PROXY_CHOOSE" in
+    2 ) REVERSE_PROXY_MODE=nginx ;;
+    3 ) REVERSE_PROXY_MODE=grpcwebproxy ;;
+    * ) REVERSE_PROXY_MODE=caddy ;;
+  esac
 
   [[ -z "$GH_USER" || -z "$GH_CLIENTID" || -z "$GH_CLIENTSECRET" || -z "$ARGO_AUTH" || -z "$ARGO_DOMAIN" ]] && error "\n $(text 18) "
 
@@ -311,8 +316,28 @@ install() {
 
   hint "\n $(text 25) "
 
-  # 根据 grpcwebproxy 或 nginx 作处理
-  if [ "$REVERSE_PROXY_MODE" = 'nginx' ]; then
+  # 根据 caddy，grpcwebproxy 或 nginx 作处理
+  if  [ "$REVERSE_PROXY_MODE" = 'caddy' ]; then
+    local CADDY_LATEST=$(wget -qO- "https://api.github.com/repos/caddyserver/caddy/releases/latest" | awk -F [v\"] '/"tag_name"/{print $5}' || echo '2.7.6')
+    wget -c ${GH_PROXY}https://github.com/caddyserver/caddy/releases/download/v${CADDY_LATEST}/caddy_${CADDY_LATEST}_linux_${ARCH}.tar.gz -qO- | tar xz -C $TEMP_DIR caddy >/dev/null 2>&1
+    GRPC_PROXY_RUN="$WORK_DIR/caddy run --config $WORK_DIR/Caddyfile --watch"
+    cat > $TEMP_DIR/Caddyfile  << EOF
+{
+    http_port $CADDY_HTTP_PORT
+}
+
+:$GRPC_PROXY_PORT {
+    reverse_proxy {
+        to localhost:$GRPC_PORT
+        transport http {
+            versions h2c 2
+        }
+    }
+    tls $WORK_DIR/nezha.pem $WORK_DIR/nezha.key
+}
+EOF
+
+  elif [ "$REVERSE_PROXY_MODE" = 'nginx' ]; then
     [ ! $(type -p nginx) ] && ${PACKAGE_INSTALL[int]} nginx
     GRPC_PROXY_RUN="nginx -c $WORK_DIR/nginx.conf"
     cat > $TEMP_DIR/nginx.conf  << EOF
@@ -358,13 +383,20 @@ EOF
   for f in ${TEMP_DIR}/{cloudflared,app,nezha.key,nezha.csr,nezha.pem}; do
     [ ! -s "$f" ] && FAILED+=("${f//${TEMP_DIR}\//}")
   done
-  [ "$REVERSE_PROXY_MODE" = 'grpcwebproxy' ] && [ ! -s $TEMP_DIR/grpcwebproxy ] && FAILED+=("grpcwebproxy")
+  case "$REVERSE_PROXY_MODE" in
+    caddy ) [ ! -s $TEMP_DIR/caddy ] && FAILED+=("caddy") ;;
+    grpcwebproxy ) [ ! -s $TEMP_DIR/grpcwebproxy ] && FAILED+=("grpcwebproxy") ;;
+  esac
   [ "${#FAILED[@]}" -gt 0 ] && error "\n $(text 36) "
 
   # 从临时文件夹复制已下载的所有到工作文件夹
   [ ! -d ${WORK_DIR}/data ] && mkdir -p ${WORK_DIR}/data
   cp -r $TEMP_DIR/{app,cloudflared,nezha.*} $WORK_DIR
-  [ "$REVERSE_PROXY_MODE" = 'nginx' ] && cp -f $TEMP_DIR/nginx.conf $WORK_DIR || cp -f $TEMP_DIR/grpcwebproxy $WORK_DIR
+  case "$REVERSE_PROXY_MODE" in
+    caddy ) cp -f $TEMP_DIR/caddy $TEMP_DIR/Caddyfile $WORK_DIR ;;
+    nginx ) cp -f $TEMP_DIR/nginx.conf $WORK_DIR ;;
+    grpcwebproxy ) cp -f $TEMP_DIR/grpcwebproxy $WORK_DIR ;;
+  esac
   rm -rf $TEMP_DIR
 
   # 根据参数生成哪吒服务端配置文件
@@ -436,23 +468,18 @@ EOF
   cat > ${WORK_DIR}/run.sh << EOF
 #!/usr/bin/env bash
 SYSTEM=$SYSTEM
-REVERSE_PROXY_MODE=$REVERSE_PROXY_MODE
 
 if [ "\$1" = 'start' ]; then
   cd ${WORK_DIR}
 
-  $GRPC_PROXY_RUN
+  $GRPC_PROXY_RUN >/dev/null 2>&1 &
 
-  nohup ${WORK_DIR}/app >/dev/null 2>&1 &
+  ${WORK_DIR}/app >/dev/null 2>&1 &
 
   $ARGO_RUN
 
 elif [ "\$1" = 'stop' ]; then
-  if [ "\$REVERSE_PROXY_MODE" = 'nginx' ]; then
-    [ "\$SYSTEM" = 'Alpine' ] && ps -ef | awk '/\/opt\/nezha\/dashboard\/(cloudflared|grpcwebproxy|app)/{print \$1}' | xargs kill -9 || ps -ef | awk '/\/opt\/nezha\/dashboard\/(cloudflared|grpcwebproxy|app)/{print \$2}' | xargs kill -9
-  elif [ "\$REVERSE_PROXY_MODE" = 'grpcwebproxy' ]; then
-    [ "\$SYSTEM" = 'Alpine' ] && ps -ef | awk '/\/opt\/nezha\/dashboard\/(cloudflared|app)/{print \$1}' | xargs kill -9 || ps -ef | awk '/\/opt\/nezha\/dashboard\/(cloudflared|app)/{print \$2}' | xargs kill -9
-  fi
+  [ "\$SYSTEM" = 'Alpine' ] && ps -ef | awk '/\/opt\/nezha\/dashboard\/(cloudflared|grpcwebproxy|caddy|app)/{print \$1}' | xargs kill -9 || ps -ef | awk '/\/opt\/nezha\/dashboard\/(cloudflared|grpcwebproxy|caddy|app)/{print \$2}' | xargs kill -9
 fi
 EOF
 

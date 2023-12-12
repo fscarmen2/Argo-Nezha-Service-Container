@@ -32,12 +32,11 @@ Documentation: [English version](https://github.com/fscarmen2/Argo-Nezha-Service
 * Argo 隧道突破需要公网入口的限制 --- 传统的哪吒需要有两个公网端口，一个用于面板的访问，另一个用于客户端上报数据，本项目借用 Cloudflare Argo 隧道，使用内网穿透的办法
 * IPv4 / v6 具备更高的灵活性 --- 传统哪吒需要处理服务端和客户端的 IPv4/v6 兼容性问题，还需要通过 warp 等工具来解决不对应的情况。然而，本项目可以完全不需要考虑这些问题，可以任意对接，更加方便和简便
 * 一条 Argo 隧道分流多个域名和协议 --- 建立一条内网穿透的 Argo 隧道，即可分流三个域名(hostname)和协议(protocal)，分别用于面板的访问(http)，客户端上报数据(tcp)和 ssh（可选）
-* GrpcWebProxy 反向代理的 gRPC 数据端口 --- 配上证书做 tls 终结，然后 Argo 的隧道配置用 https 服务指向这个反向代理，启用http2回源，grpc(nezha)->GrpcWebProxy->h2(argo)->cf cdn edge->agent
+* Grpc 反向代理的 gRPC 数据端口 --- 配上证书做 tls 终结，然后 Argo 的隧道配置用 https 服务指向这个反向代理，启用http2回源，grpc(nezha)->Grpc Proxy->h2(argo)->cf cdn edge->agent
 * 每天自动备份 --- 北京时间每天 4 时 0 分自动备份整个哪吒面板文件夹到指定的 github 私库，包括面板主题，面板设置，探针数据和隧道信息，备份保留近 5 天数据；鉴于内容十分重要，必须要放在私库
-* 每天自动更新面板 -- 北京时间每天 4 时 0 分自动检测最新的官方面板版本，有升级时自动更新
+* 每天自动更新面板和更新脚本 -- 北京时间每天 4 时 0 分自动检测最新的官方面板版本及备份还原脚本，有升级时自动更新
 * 手/自一体还原备份 --- 每分钟检测一次在线还原文件的内容，遇到有更新立刻还原
 * 默认内置本机探针 --- 能很方便的监控自身服务器信息
-* 数据更安全 --- Argo 隧道使用TLS加密通信，可以将应用程序流量安全地传输到 Cloudflare 网络，提高了应用程序的安全性和可靠性。此外，Argo Tunnel也可以防止IP泄露和DDoS攻击等网络威胁
 
 <img width="1609" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/4893c3cd-5055-468f-8138-6c5460bdd1e4">
 
@@ -100,7 +99,7 @@ Argo 隧道认证方式有 json 和 token，使用两个方式其中之一。推
   | GH_REPO             | 否 | 在 github 上备份哪吒服务端数据库文件的 github 库 |
   | GH_EMAIL            | 否 | github 的邮箱，用于备份的 git 推送到远程库 |
   | GH_PAT              | 否 | github 的 PAT |
-  | REVERSE_PROXY_MODE  | 否 | 默认使用 nginx 应用来反代，这时可以不填写该变量；如需 gRPCwebProxy 反代，请设置该值为 `grpcwebproxy` |
+  | REVERSE_PROXY_MODE  | 否 | 默认使用 Caddy 应用来反代，这时可以不填写该变量；如需 Nginx 或 gRPCwebProxy 反代，请设置该值为 `nginx ` 或 `grpcwebproxy` |
   | ARGO_AUTH           | 是 | Json: 从 https://fscarmen.cloudflare.now.cc 获取的 Argo Json<br> Token: 从 Cloudflare 官网获取 |
   | ARGO_DOMAIN         | 是 | Argo 域名 |
   | NO_AUTO_RENEW       | 否 | 默认不需要该变量，即每天定时同步在线最新的备份和还原脚本。如不需要该功能，设置此变量，并赋值为 `1` | 
@@ -137,7 +136,7 @@ docker run -dit \
            -e ARGO_AUTH='<填获取的 Argo json 或者 token>' \
            -e ARGO_DOMAIN=<填自定义的> \
            -e GH_BACKUP_USER=<选填，选填，选填! 如与 GH_USER 一致，可以不要该环境变量> \
-           -e REVERSE_PROXY_MODE=<选填，选填，选填! 如想用 gRPCwebProxy 替代 nginx 反代的话，请设置该变量并赋值为 `grpcwebproxy`> \
+           -e REVERSE_PROXY_MODE=<选填，选填，选填! 如想用 Nginx 或 gRPCwebProxy 替代 Caddy 反代的话，请设置该变量并赋值为 `nginx` 或 `grpcwebproxy`> \
            -e NO_AUTO_RENEW=<选填，选填，选填! 如果不需要自动在线同步最新的 backup.sh 和 restore.sh，请设置该变量并赋值为 `1`> 
            fscarmen/argo-nezha
 ```
@@ -161,7 +160,7 @@ services:
             - ARGO_AUTH='<填获取的 Argo json 或者 token>'
             - ARGO_DOMAIN=<填自定义的>
             - GH_BACKUP_USER=<选填，选填，选填! 如与 GH_USER 一致，可以不要该环境变量>
-            - REVERSE_PROXY_MODE=<选填，选填，选填! 如想用 gRPCwebProxy 替代 nginx 反代的话，请设置该变量并赋值为 `grpcwebproxy`>
+            - REVERSE_PROXY_MODE=<选填，选填，选填! 如想用 Nginx 或 gRPCwebProxy 替代 Caddy 反代的话，请设置该变量并赋值为 `nginx` 或 `grpcwebproxy`>
             - NO_AUTO_RENEW=<选填，选填，选填! 如果不需要自动在线同步最新的 backup.sh 和 restore.sh，请设置该变量并赋值为 `1`>
 ```
 
@@ -249,6 +248,8 @@ tar czvf dashboard.tar.gz /dashboard
 |-- nezha.pem            # SSL/TLS 证书文件
 |-- cloudflared          # Cloudflare Argo 隧道主程序
 |-- grpcwebproxy         # gRPC 反代主程序
+|-- caddy                # Caddy 主程序
+|-- Caddyfile            # Caddy 配置文件
 `-- nezha-agent          # 哪吒客户端，用于监控本地 localhost
 ```
 
