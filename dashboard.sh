@@ -372,7 +372,7 @@ http {
 }
 EOF
   elif [ "$REVERSE_PROXY_MODE" = 'grpcwebproxy' ]; then
-    wget -c ${GH_PROXY}https://github.com/fscarmen2/Argo-Nezha-Service-Container/releases/download/grpcwebproxy/grpcwebproxy_linux_$ARCH.tar.gz -qO- | tar xz -C $TEMP_DIR >/dev/null 2>&1
+    wget -c ${GH_PROXY}https://github.com/fscarmen2/Argo-Nezha-Service-Container/releases/download/grpcwebproxy/grpcwebproxy-linux-$ARCH.tar.gz -qO- | tar xz -C $TEMP_DIR >/dev/null 2>&1
     chmod +x $TEMP_DIR/grpcwebproxy
     GRPC_PROXY_RUN="nohup ${WORK_DIR}/grpcwebproxy --run_http_server=false --server_tls_cert_file=${WORK_DIR}/nezha.pem --server_tls_key_file=${WORK_DIR}/nezha.key --server_http_tls_port=$GRPC_PROXY_PORT --backend_addr=localhost:${GRPC_PORT} --backend_tls_noverify --server_http_max_read_timeout=300s --server_http_max_write_timeout=300s >/dev/null 2>&1 &"
   fi
