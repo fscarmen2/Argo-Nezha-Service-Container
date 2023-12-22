@@ -55,10 +55,12 @@ ABC
   fi
 }
 
-ONLINE="$(wget -qO- --header="Authorization: token $GH_PAT" "${GH_PROXY}https://raw.githubusercontent.com/$GH_BACKUP_USER/$GH_REPO/main/README.md" | sed "/^$/d" | head -n 1)"
+ONLINE="$(wget -qO- --header="Authorization: token $GH_PAT" ${GH_PROXY}https://raw.githubusercontent.com/$GH_BACKUP_USER/$GH_REPO/main/README.md | sed "/^$/d" | head -n 1)"
 
 # 若用户在 Github 的 README.md 里改了内容包含关键词 backup，则触发实时备份；为解决 Github cdn 导致获取文件内容来回跳的问题，设置自锁并检测到备份文件后延时3分钟断开（3次 运行 restore.sh 的时间)
-if grep -qi 'backup' <<< "$ONLINE"; then
+if [ -z "$ONLINE" ]; then
+  error "\n Failed to connect to Github or README.md is empty! \n"
+elif grep -qi 'backup' <<< "$ONLINE"; then
   [ ! -e ${NO_ACTION_FLAG}* ] && { touch ${NO_ACTION_FLAG}; $WORK_DIR/backup.sh; exit 0; }
 elif [ -e ${NO_ACTION_FLAG} ]; then
   mv -f ${NO_ACTION_FLAG} ${NO_ACTION_FLAG}1
@@ -105,8 +107,8 @@ elif [ -z "$1" ]; then
   FILE=${BACKUP_FILE_LIST[$((CHOOSE-1))]}
 fi
 
-DOWNLOAD_URL=${GH_PROXY}https://raw.githubusercontent.com/$GH_BACKUP_USER/$GH_REPO/main/$FILE
-wget --header="Authorization: token $GH_PAT" --header='Accept: application/vnd.github.v3.raw' -O $TEMP_DIR/backup.tar.gz "$DOWNLOAD_URL"
+DOWNLOAD_URL=https://raw.githubusercontent.com/$GH_BACKUP_USER/$GH_REPO/main/$FILE
+wget --header="Authorization: token $GH_PAT" --header='Accept: application/vnd.github.v3.raw' -O $TEMP_DIR/backup.tar.gz ${GH_PROXY}${DOWNLOAD_URL}
 
 if [ -e $TEMP_DIR/backup.tar.gz ]; then
   if [ "$IS_DOCKER" = 1 ]; then
@@ -155,10 +157,12 @@ if [ -e $TEMP_DIR/backup.tar.gz ]; then
     hint "\n Start Nezha-dashboard \n" && cmd_systemctl enable >/dev/null 2>&1
   fi
   sleep 3
+else
+  warning "\n Failed to download backup file! \n"
 fi
 
 if [ "$IS_DOCKER" = 1 ]; then
-  [ $(supervisorctl status all | grep -c "RUNNING") = $(grep -c '\[program:.*\]' /etc/supervisor/conf.d/damon.conf) ] && info "\n Done! \n" || error "\n Failed! \n"
+  [ $(supervisorctl status all | grep -c "RUNNING") = $(grep -c '\[program:.*\]' /etc/supervisor/conf.d/damon.conf) ] && info "\n All programs started! \n" || error "\n Failed to start program! \n"
 else
-  [ "$(systemctl is-active nezha-dashboard)" = 'active' ] && info "\n Done! \n" || error "\n Failed! \n"
+  [ "$(systemctl is-active nezha-dashboard)" = 'active' ] && info "\n Nezha dashboard started! \n" || error "\n Failed to start Nezha dashboard! \n"
 fi

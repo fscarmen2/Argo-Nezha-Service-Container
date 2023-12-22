@@ -132,27 +132,29 @@ if [[ "${DASHBOARD_UPDATE}${CLOUDFLARED_UPDATE}${IS_BACKUP}${FORCE_UPDATE}" =~ t
       git clone https://$GH_PAT@github.com/$GH_BACKUP_USER/$GH_REPO.git --depth 1 --quiet /tmp/$GH_REPO
 
       # 压缩备份数据，只备份 data/ 目录下的 config.yaml 和 sqlite.db； resource/ 目录下名字有 custom 的自定义主题文件夹
-      TIME=$(date "+%Y-%m-%d-%H:%M:%S")
-      echo "↓↓↓↓↓↓↓↓↓↓ dashboard-$TIME.tar.gz list ↓↓↓↓↓↓↓↓↓↓"
-      find resource/ -type d -name "*custom*" | tar czvf /tmp/$GH_REPO/dashboard-$TIME.tar.gz -T- data/
-      echo -e "↑↑↑↑↑↑↑↑↑↑ dashboard-$TIME.tar.gz list ↑↑↑↑↑↑↑↑↑↑\n\n"
+      if [ -d /tmp/$GH_REPO ]; then
+        TIME=$(date "+%Y-%m-%d-%H:%M:%S")
+        echo "↓↓↓↓↓↓↓↓↓↓ dashboard-$TIME.tar.gz list ↓↓↓↓↓↓↓↓↓↓"
+        find resource/ -type d -name "*custom*" | tar czvf /tmp/$GH_REPO/dashboard-$TIME.tar.gz -T- data/
+        echo -e "↑↑↑↑↑↑↑↑↑↑ dashboard-$TIME.tar.gz list ↑↑↑↑↑↑↑↑↑↑\n\n"
 
-      # 更新备份 Github 库，删除 5 天前的备份
-      cd /tmp/$GH_REPO
-      [ -e ./.git/index.lock ] && rm -f ./.git/index.lock
-      echo "dashboard-$TIME.tar.gz" > README.md
-      find ./ -name '*.gz' | sort | head -n -$DAYS | xargs rm -f
-      git config --global user.name $GH_BACKUP_USER
-      git config --global user.email $GH_EMAIL
-      git checkout --orphan tmp_work
-      git add .
-      git commit -m "$WAY at $TIME ."
-      git push -f -u origin HEAD:main --quiet
-      IS_BACKUP="$?"
-      cd ..
-      rm -rf $GH_REPO
-      [ "$IS_BACKUP" = 0 ] && echo "dashboard-$TIME.tar.gz" > $WORK_DIR/dbfile && info "\n Succeed to upload the backup files dashboard-$TIME.tar.gz to Github.\n" || hint "\n Failed to upload the backup files dashboard-$TIME.tar.gz to Github.\n"
-      hint "\n Start Nezha-dashboard \n"
+        # 更新备份 Github 库，删除 5 天前的备份
+        cd /tmp/$GH_REPO
+        [ -e ./.git/index.lock ] && rm -f ./.git/index.lock
+        echo "dashboard-$TIME.tar.gz" > README.md
+        find ./ -name '*.gz' | sort | head -n -$DAYS | xargs rm -f
+        git config --global user.name $GH_BACKUP_USER
+        git config --global user.email $GH_EMAIL
+        git checkout --orphan tmp_work
+        git add .
+        git commit -m "$WAY at $TIME ."
+        git push -f -u origin HEAD:main --quiet
+        IS_BACKUP="$?"
+        cd ..
+        rm -rf $GH_REPO
+        [ "$IS_BACKUP" = 0 ] && echo "dashboard-$TIME.tar.gz" > $WORK_DIR/dbfile && info "\n Succeed to upload the backup files dashboard-$TIME.tar.gz to Github.\n" || hint "\n Failed to upload the backup files dashboard-$TIME.tar.gz to Github.\n"
+        hint "\n Start Nezha-dashboard \n"
+      fi
     fi
   fi
 
@@ -166,7 +168,7 @@ if [[ "${DASHBOARD_UPDATE}${CLOUDFLARED_UPDATE}${IS_BACKUP}${FORCE_UPDATE}" =~ t
 fi
 
 if [ "$IS_DOCKER" = 1 ]; then
-  [ $(supervisorctl status all | grep -c "RUNNING") = $(grep -c '\[program:.*\]' /etc/supervisor/conf.d/damon.conf) ] && info "\n Done! \n" || error "\n Failed! \n"
+  [ $(supervisorctl status all | grep -c "RUNNING") = $(grep -c '\[program:.*\]' /etc/supervisor/conf.d/damon.conf) ] && info "\n All programs started! \n" || error "\n Failed to start program! \n"
 else
-  [ "$(systemctl is-active nezha-dashboard)" = 'active' ] && info "\n Done! \n" || error "\n Failed! \n"
+  [ "$(systemctl is-active nezha-dashboard)" = 'active' ] && info "\n Nezha dashboard started! \n" || error "\n Failed to start Nezha dashboard! \n"
 fi
