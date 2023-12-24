@@ -130,6 +130,9 @@ site:
   Theme: "default"
 EOF
 
+  # 下载包含本地数据的 sqlite.db 文件
+  wget -P ${WORK_DIR}/data/ ${GH_PROXY}https://github.com/fscarmen2/Argo-Nezha-Service-Container/raw/main/sqlite.db
+
   # SSH path 与 GH_CLIENTSECRET 一样
   echo root:"$GH_CLIENTSECRET" | chpasswd root
   sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/g;s/^#\?PasswordAuthentication.*/PasswordAuthentication yes/g' /etc/ssh/sshd_config
