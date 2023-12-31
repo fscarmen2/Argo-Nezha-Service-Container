@@ -14,6 +14,8 @@ IS_DOCKER=
 
 ########
 
+# version: 2023.12.31
+
 trap "rm -rf $TEMP_DIR; echo -e '\n' ;exit" INT QUIT TERM EXIT
 
 mkdir -p $TEMP_DIR
@@ -144,7 +146,7 @@ if [ -e $TEMP_DIR/backup.tar.gz ]; then
   sed -i "s@brand:.*@$CONFIG_BRAND@; s@cookiename:.*@$CONFIG_COOKIENAME@; s@theme:.*@$CONFIG_THEME@" ${TEMP_DIR}/${FILE_PATH}data/config.yaml
 
   # 复制临时文件到正式的工作文件夹
-  cp -f ${TEMP_DIR}/${FILE_PATH}data/* ${WORK_DIR}/data/
+  cp -rf ${TEMP_DIR}/${FILE_PATH}data/* ${WORK_DIR}/data/
   [ -d ${TEMP_DIR}/${FILE_PATH}resource ] && cp -rf ${TEMP_DIR}/${FILE_PATH}resource ${WORK_DIR}
   rm -rf ${TEMP_DIR}
 

@@ -15,6 +15,8 @@ IS_DOCKER=
 
 ########
 
+# version: 2023.12.31
+
 warning() { echo -e "\033[31m\033[01m$*\033[0m"; }  # 红色
 error() { echo -e "\033[31m\033[01m$*\033[0m" && exit 1; } # 红色
 info() { echo -e "\033[32m\033[01m$*\033[0m"; }   # 绿色
@@ -80,91 +82,90 @@ fi
 
 # 分步骤处理
 if [[ "${DASHBOARD_UPDATE}${CLOUDFLARED_UPDATE}${IS_BACKUP}${FORCE_UPDATE}" =~ true ]]; then
-  # 停掉面板才能备份
-  if [ "$IS_DOCKER" = 1 ]; then
-    hint "\n$(supervisorctl stop agent nezha grpcproxy)\n"
-    sleep 2
-    [ "$(supervisorctl status nezha | awk '{print $2}')" = 'STOPPED' ] && IS_STOP=1
-  else
-    hint "\n stop Nezha-dashboard \n"
-    cmd_systemctl disable
-    sleep 2
-    [ "$(systemctl is-active nezha-dashboard)" = 'inactive' ] && IS_STOP=1
+  # 更新面板和 resource
+  if [[ "${DASHBOARD_UPDATE}${FORCE_UPDATE}" =~ 'true' ]]; then
+    hint "\n Renew dashboard app to $DASHBOARD_LATEST \n"
+    wget -O /tmp/dashboard.zip ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip
+    unzip /tmp/dashboard.zip -d /tmp
+    if [ -s /tmp/dist/dashboard-linux-$ARCH ]; then
+      info "\n Restart Nezha Dashboard \n"
+      if [ "$IS_DOCKER" = 1 ]; then
+        supervisorctl stop nezha >/dev/null 2>&1
+        mv -f /tmp/dist/dashboard-linux-$ARCH $WORK_DIR/app
+        supervisorctl start nezha >/dev/null 2>&1
+      else
+        cmd_systemctl disable >/dev/null 2>&1
+        mv -f /tmp/dist/dashboard-linux-$ARCH $WORK_DIR/app
+        cmd_systemctl enable >/dev/null 2>&1
+      fi
+    fi
+    rm -rf /tmp/dist /tmp/dashboard.zip
   fi
 
-  if [ "$IS_STOP" = 1 ]; then
-    # 更新面板和 resource
-    if [[ "${DASHBOARD_UPDATE}${FORCE_UPDATE}" =~ 'true' ]]; then
-      hint "\n Renew dashboard app to $DASHBOARD_LATEST \n"
-      wget -O /tmp/dashboard.zip ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip
-      unzip /tmp/dashboard.zip -d /tmp
-      mv -f /tmp/dist/dashboard-linux-$ARCH $WORK_DIR/app
-      rm -rf /tmp/dist /tmp/dashboard.zip
-    fi
+  # 处理 v0.15.17 之后自定义主题静态链接的路径问题，删除原 resource 下的非 custom 文件夹及文件
+  [ -d $WORK_DIR/resource/static/theme-custom ] && mv -f $WORK_DIR/resource/static/theme-custom $WORK_DIR/resource/static/custom
+  [ -s $WORK_DIR/resource/template/theme-custom/header.html ] && sed -i 's#/static/theme-custom/#/static-custom/#g' $WORK_DIR/resource/template/theme-custom/header.html
+  if [ -d $WORK_DIR/resource ]; then
+    find $WORK_DIR/resource ! -path "$WORK_DIR/resource/*/*custom*" -type f -delete
+    find $WORK_DIR/resource ! -path "$WORK_DIR/resource/*/*custom*" -type d -empty -delete
+  fi
 
-    # 处理 v0.15.17 之后自定义主题静态链接的路径问题，删除原 resource 下的非 custom 文件夹及文件
-    [ -d $WORK_DIR/resource/static/theme-custom ] && mv -f $WORK_DIR/resource/static/theme-custom $WORK_DIR/resource/static/custom
-    [ -s $WORK_DIR/resource/template/theme-custom/header.html ] && sed -i 's#/static/theme-custom/#/static-custom/#g' $WORK_DIR/resource/template/theme-custom/header.html
-    if [ -d $WORK_DIR/resource ]; then
-      find $WORK_DIR/resource ! -path "$WORK_DIR/resource/*/*custom*" -type f -delete
-      find $WORK_DIR/resource ! -path "$WORK_DIR/resource/*/*custom*" -type d -empty -delete
-    fi
-
-    # 更新 cloudflared
-    if [[ "${CLOUDFLARED_UPDATE}${FORCE_UPDATE}" =~ 'true' ]]; then
-      hint "\n Renew Cloudflared to $CLOUDFLARED_LATEST \n"
-      wget -O $WORK_DIR/cloudflared ${GH_PROXY}https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$ARCH && chmod +x $WORK_DIR/cloudflared
-    fi
-
-    # 克隆备份仓库，压缩备份文件，上传更新
-    if [ "$IS_BACKUP" = 'true' ]; then
-      # 设置 git 环境变量，减少系统开支
-      if [ "$IS_DOCKER" != 1 ]; then
-        git config --global core.bigFileThreshold 1k
-        git config --global core.compression 0
-        git config --global advice.detachedHead false
-        git config --global pack.threads 1
-        git config --global pack.windowMemory 50m
-      fi
-
-      # 克隆现有备份库
-      [ -d /tmp/$GH_REPO ] && rm -rf /tmp/$GH_REPO
-      git clone https://$GH_PAT@github.com/$GH_BACKUP_USER/$GH_REPO.git --depth 1 --quiet /tmp/$GH_REPO
-
-      # 压缩备份数据，只备份 data/ 目录下的 config.yaml 和 sqlite.db； resource/ 目录下名字有 custom 的自定义主题文件夹
-      if [ -d /tmp/$GH_REPO ]; then
-        TIME=$(date "+%Y-%m-%d-%H:%M:%S")
-        echo "↓↓↓↓↓↓↓↓↓↓ dashboard-$TIME.tar.gz list ↓↓↓↓↓↓↓↓↓↓"
-        find resource/ -type d -name "*custom*" | tar czvf /tmp/$GH_REPO/dashboard-$TIME.tar.gz -T- data/
-        echo -e "↑↑↑↑↑↑↑↑↑↑ dashboard-$TIME.tar.gz list ↑↑↑↑↑↑↑↑↑↑\n\n"
-
-        # 更新备份 Github 库，删除 5 天前的备份
-        cd /tmp/$GH_REPO
-        [ -e ./.git/index.lock ] && rm -f ./.git/index.lock
-        echo "dashboard-$TIME.tar.gz" > README.md
-        find ./ -name '*.gz' | sort | head -n -$DAYS | xargs rm -f
-        git config --global user.name $GH_BACKUP_USER
-        git config --global user.email $GH_EMAIL
-        git checkout --orphan tmp_work
-        git add .
-        git commit -m "$WAY at $TIME ."
-        git push -f -u origin HEAD:main --quiet
-        IS_BACKUP="$?"
-        cd ..
-        rm -rf $GH_REPO
-        [ "$IS_BACKUP" = 0 ] && echo "dashboard-$TIME.tar.gz" > $WORK_DIR/dbfile && info "\n Succeed to upload the backup files dashboard-$TIME.tar.gz to Github.\n" || hint "\n Failed to upload the backup files dashboard-$TIME.tar.gz to Github.\n"
-        hint "\n Start Nezha-dashboard \n"
+  # 更新 cloudflared
+  if [[ "${CLOUDFLARED_UPDATE}${FORCE_UPDATE}" =~ 'true' ]]; then
+    hint "\n Renew Cloudflared to $CLOUDFLARED_LATEST \n"
+    wget -O /tmp/cloudflared ${GH_PROXY}https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$ARCH && chmod +x /tmp/cloudflared
+    if [ -s /tmp/cloudflared ]; then
+      info "\n Restart Argo \n"
+      if [ "$IS_DOCKER" = 1 ]; then
+        supervisorctl stop argo >/dev/null 2>&1
+        mv -f /tmp/cloudflared $WORK_DIR/
+      else
+        cmd_systemctl disable >/dev/null 2>&1
+        mv -f /tmp/cloudflared $WORK_DIR/
+        cmd_systemctl enable >/dev/null 2>&1
       fi
     fi
   fi
 
-  # 重启面板
-  if [ "$IS_DOCKER" = 1 ]; then
-    hint "\n$(supervisorctl start agent nezha grpcproxy)\n"
-  else
-    cmd_systemctl enable >/dev/null 2>&1
+  # 克隆备份仓库，压缩备份文件，上传更新
+  if [ "$IS_BACKUP" = 'true' ]; then
+    # 设置 git 环境变量，减少系统开支
+    if [ "$IS_DOCKER" != 1 ]; then
+      git config --global core.bigFileThreshold 1k
+      git config --global core.compression 0
+      git config --global advice.detachedHead false
+      git config --global pack.threads 1
+      git config --global pack.windowMemory 50m
+    fi
+
+    # 克隆现有备份库
+    [ -d /tmp/$GH_REPO ] && rm -rf /tmp/$GH_REPO
+    git clone https://$GH_PAT@github.com/$GH_BACKUP_USER/$GH_REPO.git --depth 1 --quiet /tmp/$GH_REPO
+
+    # 压缩备份数据，只备份 data/ 目录下的 config.yaml 和 sqlite.db； resource/ 目录下名字有 custom 的自定义主题文件夹
+    if [ -d /tmp/$GH_REPO ]; then
+      TIME=$(date "+%Y-%m-%d-%H:%M:%S")
+      echo "↓↓↓↓↓↓↓↓↓↓ dashboard-$TIME.tar.gz list ↓↓↓↓↓↓↓↓↓↓"
+      find resource/ -type d -name "*custom*" | tar czvf /tmp/$GH_REPO/dashboard-$TIME.tar.gz -T- data/
+      echo -e "↑↑↑↑↑↑↑↑↑↑ dashboard-$TIME.tar.gz list ↑↑↑↑↑↑↑↑↑↑\n\n"
+
+      # 更新备份 Github 库，删除 5 天前的备份
+      cd /tmp/$GH_REPO
+      [ -e ./.git/index.lock ] && rm -f ./.git/index.lock
+      echo "dashboard-$TIME.tar.gz" > README.md
+      find ./ -name '*.gz' | sort | head -n -$DAYS | xargs rm -f
+      git config --global user.name $GH_BACKUP_USER
+      git config --global user.email $GH_EMAIL
+      git checkout --orphan tmp_work
+      git add .
+      git commit -m "$WAY at $TIME ."
+      git push -f -u origin HEAD:main --quiet
+      IS_UPLOAD="$?"
+      cd ..
+      rm -rf $GH_REPO
+      [ "$IS_UPLOAD" = 0 ] && echo "dashboard-$TIME.tar.gz" > $WORK_DIR/dbfile && info "\n Succeed to upload the backup files dashboard-$TIME.tar.gz to Github.\n" || hint "\n Failed to upload the backup files dashboard-$TIME.tar.gz to Github.\n"
+    fi
   fi
-  sleep 2
 fi
 
 if [ "$IS_DOCKER" = 1 ]; then
