@@ -15,7 +15,7 @@ IS_DOCKER=
 
 ########
 
-# version: 2023.12.31
+# version: 2024.01.11
 
 warning() { echo -e "\033[31m\033[01m$*\033[0m"; }  # 红色
 error() { echo -e "\033[31m\033[01m$*\033[0m" && exit 1; } # 红色
@@ -119,6 +119,7 @@ if [[ "${DASHBOARD_UPDATE}${CLOUDFLARED_UPDATE}${IS_BACKUP}${FORCE_UPDATE}" =~ t
       if [ "$IS_DOCKER" = 1 ]; then
         supervisorctl stop argo >/dev/null 2>&1
         mv -f /tmp/cloudflared $WORK_DIR/
+        supervisorctl start argo >/dev/null 2>&1
       else
         cmd_systemctl disable >/dev/null 2>&1
         mv -f /tmp/cloudflared $WORK_DIR/
