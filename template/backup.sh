@@ -2,7 +2,7 @@
 
 # backup.sh 传参 a 自动还原； 传参 m 手动还原； 传参 f 强制更新面板 app 文件及 cloudflared 文件，并备份数据至成备份库
 
-GH_PROXY=https://mirror.ghproxy.com/
+GH_PROXY=https://cdn2.cloudflare.now.cc/
 GH_PAT=
 GH_BACKUP_USER=
 GH_EMAIL=

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # 各变量默认值
-GH_PROXY=https://mirror.ghproxy.com/
+GH_PROXY=https://cdn2.cloudflare.now.cc/
 WORK_DIR='/opt/nezha/dashboard'
 TEMP_DIR='/tmp/nezha'
 START_PORT='5000'

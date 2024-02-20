@@ -33,12 +33,12 @@ Documentation: [English version](https://github.com/fscarmen2/Argo-Nezha-Service
 * IPv4 / v6 具备更高的灵活性 --- 传统哪吒需要处理服务端和客户端的 IPv4/v6 兼容性问题，还需要通过 warp 等工具来解决不对应的情况。然而，本项目可以完全不需要考虑这些问题，可以任意对接，更加方便和简便
 * 一条 Argo 隧道分流多个域名和协议 --- 建立一条内网穿透的 Argo 隧道，即可分流三个域名(hostname)和协议(protocal)，分别用于面板的访问(http)，客户端上报数据(tcp)和 ssh（可选）
 * Grpc 反向代理的 gRPC 数据端口 --- 配上证书做 tls 终结，然后 Argo 的隧道配置用 https 服务指向这个反向代理，启用http2回源，grpc(nezha)->Grpc Proxy->h2(argo)->cf cdn edge->agent
-* 每天自动备份 --- 北京时间每天 4 时 0 分自动备份整个哪吒面板文件夹到指定的 github 私库，包括面板主题，面板设置，探针数据和隧道信息，备份保留近 5 天数据；鉴于内容十分重要，必须要放在私库
+* 每天自动备份 --- 数据持久化从本地改为线上，北京时间每天 4 时 0 分自动备份整个哪吒面板文件夹到指定的 github 私库，包括面板主题，面板设置，探针数据和隧道信息，备份保留近 5 天数据；鉴于内容十分重要，必须要放在私库
 * 每天自动更新面板和更新脚本 -- 北京时间每天 4 时 0 分自动检测最新的官方面板版本及备份还原脚本，有升级时自动更新
 * 手/自一体还原备份 --- 每分钟检测一次在线还原文件的内容，遇到有更新立刻还原
 * 默认内置本机探针 --- 能很方便的监控自身服务器信息
 
-<img width="1609" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/4893c3cd-5055-468f-8138-6c5460bdd1e4">
+<img width="1609" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/ecd9d887-68f0-46f9-9a63-eb0275f066eb">
 
 
 ## 准备需要用的变量

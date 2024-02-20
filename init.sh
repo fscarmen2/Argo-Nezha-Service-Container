@@ -4,7 +4,7 @@
 if [ ! -s /etc/supervisor/conf.d/damon.conf ]; then
 
   # 设置 Github CDN 及若干变量
-  GH_PROXY=https://mirror.ghproxy.com/
+  GH_PROXY=https://cdn2.cloudflare.now.cc/
   GRPC_PROXY_PORT=443
   GRPC_PORT=5555
   WEB_PORT=80
