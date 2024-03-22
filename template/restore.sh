@@ -14,7 +14,7 @@ IS_DOCKER=
 
 ########
 
-# version: 2023.12.31
+# version: 2024.3.21
 
 trap "rm -rf $TEMP_DIR; echo -e '\n' ;exit" INT QUIT TERM EXIT
 
@@ -57,39 +57,50 @@ ABC
   fi
 }
 
+# 在本地有不备份标志文件时，不执行备份操作，等待10分钟。触发该标志场景：1. README.md 文件内容包含关键词 backup，2. backup.sh 脚本被手动执行完成后保持 9 分钟。
+if [ -e $NO_ACTION_FLAG* ]; then
+  FLAG_STATUS=$(ls $NO_ACTION_FLAG*)
+  WAIT_MINUTE=9
+  if [ "${FLAG_STATUS: -1}" != "$WAIT_MINUTE" ]; then
+    mv -f $FLAG_STATUS $NO_ACTION_FLAG$((${FLAG_STATUS: -1} + 1))
+    error "\n The script is not executed, please wait for $(( WAIT_MINUTE - ${FLAG_STATUS: -1} )) minutes. \n"
+  else
+    rm -f ${NO_ACTION_FLAG}*
+  fi
+fi
+
+# 获取 Github 上的 README.md 文件内容
 ONLINE="$(wget -qO- --header="Authorization: token $GH_PAT" ${GH_PROXY}https://raw.githubusercontent.com/$GH_BACKUP_USER/$GH_REPO/main/README.md | sed "/^$/d" | head -n 1)"
 
 # 若用户在 Github 的 README.md 里改了内容包含关键词 backup，则触发实时备份；为解决 Github cdn 导致获取文件内容来回跳的问题，设置自锁并检测到备份文件后延时3分钟断开（3次 运行 restore.sh 的时间)
 if [ -z "$ONLINE" ]; then
   error "\n Failed to connect to Github or README.md is empty! \n"
 elif grep -qi 'backup' <<< "$ONLINE"; then
-  [ ! -e ${NO_ACTION_FLAG}* ] && { touch ${NO_ACTION_FLAG}; $WORK_DIR/backup.sh; exit 0; }
-elif [ -e ${NO_ACTION_FLAG} ]; then
-  mv -f ${NO_ACTION_FLAG} ${NO_ACTION_FLAG}1
-elif [ -e ${NO_ACTION_FLAG}1 ]; then
-  mv -f ${NO_ACTION_FLAG}1 ${NO_ACTION_FLAG}2
-elif [ -e ${NO_ACTION_FLAG}2 ]; then
-  mv -f ${NO_ACTION_FLAG}2 ${NO_ACTION_FLAG}3
-elif [ -e ${NO_ACTION_FLAG}3 ]; then
-  rm -f ${NO_ACTION_FLAG}3
+  [ ! -e ${NO_ACTION_FLAG}* ] && { $WORK_DIR/backup.sh; exit 0; }
 fi
 
 # 读取面板现配置信息
-CONFIG_HTTPPORT=$(grep -i '^HTTPPort:' $WORK_DIR/data/config.yaml)
-CONFIG_LANGUAGE=$(grep -i '^Language:' $WORK_DIR/data/config.yaml)
-CONFIG_GRPCPORT=$(grep -i '^GRPCPort:' $WORK_DIR/data/config.yaml)
-CONFIG_GRPCHOST=$(grep -i '^GRPCHost:' $WORK_DIR/data/config.yaml)
-CONFIG_PROXYGRPCPORT=$(grep -i '^ProxyGRPCPort:' $WORK_DIR/data/config.yaml)
-CONFIG_TYPE=$(sed -n '/Type:/ s/^[ ]\+//gp' $WORK_DIR/data/config.yaml)
-CONFIG_ADMIN=$(sed -n '/Admin:/ s/^[ ]\+//gp' $WORK_DIR/data/config.yaml)
-CONFIG_CLIENTID=$(sed -n '/ClientID:/ s/^[ ]\+//gp' $WORK_DIR/data/config.yaml)
-CONFIG_CLIENTSECRET=$(sed -n '/ClientSecret:/ s/^[ ]\+//gp' $WORK_DIR/data/config.yaml)
+CONFIG_YAML=$(cat $WORK_DIR/data/config.yaml)
+CONFIG_HTTPPORT=$(grep -i '^HTTPPort:' <<< "$CONFIG_YAML")
+CONFIG_LANGUAGE=$(grep -i '^Language:' <<< "$CONFIG_YAML")
+CONFIG_GRPCPORT=$(grep -i '^GRPCPort:' <<< "$CONFIG_YAML")
+CONFIG_GRPCHOST=$(grep -i '^GRPCHost:' <<< "$CONFIG_YAML")
+CONFIG_PROXYGRPCPORT=$(grep -i '^ProxyGRPCPort:' <<< "$CONFIG_YAML")
+CONFIG_TYPE=$(sed -n '/Type:/ s/^[ ]\+//gp' <<< "$CONFIG_YAML")
+CONFIG_ADMIN=$(sed -n '/Admin:/ s/^[ ]\+//gp' <<< "$CONFIG_YAML")
+CONFIG_CLIENTID=$(sed -n '/ClientID:/ s/^[ ]\+//gp' <<< "$CONFIG_YAML")
+CONFIG_CLIENTSECRET=$(sed -n '/ClientSecret:/ s/^[ ]\+//gp' <<< "$CONFIG_YAML")
 
 # 如 dbfile 不为空，即不是首次安装，记录当前面板的主题等信息
-[ -s $WORK_DIR/dbfile ] && CONFIG_BRAND=$(sed -n '/brand:/s/^[ ]\+//gp' $WORK_DIR/data/config.yaml) &&
-CONFIG_COOKIENAME=$(sed -n '/cookiename:/s/^[ ]\+//gp' $WORK_DIR/data/config.yaml) &&
-CONFIG_THEME=$(sed -n '/theme:/s/^[ ]\+//gp' $WORK_DIR/data/config.yaml)
+if [ -s $WORK_DIR/dbfile ]; then
+  CONFIG_BRAND=$(sed -n '/brand:/s/^[ ]\+//gp' <<< "$CONFIG_YAML")
+  CONFIG_COOKIENAME=$(sed -n '/cookiename:/s/^[ ]\+//gp' <<< "$CONFIG_YAML")
+  CONFIG_THEME=$(sed -n '/theme:/s/^[ ]\+//gp' <<< "$CONFIG_YAML")
+  CONFIG_AVGPINGCOUNT=$(grep -i 'AvgPingCount:' <<< "$CONFIG_YAML")
+  CONFIG_MAXTCPPINGVALUE=$(grep -i 'MaxTCPPingValue:' <<< "$CONFIG_YAML")
+fi
 
+# 根据传参标志作相应的处理
 if [ "$1" = a ]; then
   [ "$ONLINE" = "$(cat $WORK_DIR/dbfile)" ] && exit
   [[ "$ONLINE" =~ tar\.gz$ && "$ONLINE" != "$(cat $WORK_DIR/dbfile)" ]] && FILE="$ONLINE" || exit
@@ -141,9 +152,13 @@ if [ -e $TEMP_DIR/backup.tar.gz ]; then
   # 还原面板配置的最新信息
   sed -i "s@HTTPPort:.*@$CONFIG_HTTPPORT@; s@Language:.*@$CONFIG_LANGUAGE@; s@^GRPCPort:.*@$CONFIG_GRPCPORT@; s@gGRPCHost:.*@I$CONFIG_GRPCHOST@; s@ProxyGRPCPort:.*@$CONFIG_PROXYGRPCPORT@; s@Type:.*@$CONFIG_TYPE@; s@Admin:.*@$CONFIG_ADMIN@; s@ClientID:.*@$CONFIG_CLIENTID@; s@ClientSecret:.*@$CONFIG_CLIENTSECRET@I" ${TEMP_DIR}/${FILE_PATH}data/config.yaml
 
-  # 逻辑是安装首次使用备份文件里的主题信息，之后使用本地最新的主题信息
-  [[ -n "$CONFIG_BRAND && -n "$CONFIG_COOKIENAME && -n "$CONFIG_THEME" ]] &&
+  # 逻辑是安装首次使用备份文件里的主题信息，之后使用本地最新的主题信息和 MaxTCPPingValue, AvgPingCount
+  [[ -n "$CONFIG_BRAND" && -n "$CONFIG_COOKIENAME" && -n "$CONFIG_THEME" ]] &&
   sed -i "s@brand:.*@$CONFIG_BRAND@; s@cookiename:.*@$CONFIG_COOKIENAME@; s@theme:.*@$CONFIG_THEME@" ${TEMP_DIR}/${FILE_PATH}data/config.yaml
+
+  [[ "$(awk '{print $NF}' <<< "$CONFIG_AVGPINGCOUNT")" =~ ^[0-9]+$ ]] && sed -i "s@AvgPingCount:.*@$CONFIG_AVGPINGCOUNT@" ${TEMP_DIR}/${FILE_PATH}data/config.yaml
+
+  [[ "$(awk '{print $NF}' <<< "$CONFIG_MAXTCPPINGVALUE")" =~ ^[0-9]+$ ]] && sed -i "s@MaxTCPPingValue:.*@$CONFIG_MAXTCPPINGVALUE@" ${TEMP_DIR}/${FILE_PATH}data/config.yaml
 
   # 复制临时文件到正式的工作文件夹
   cp -rf ${TEMP_DIR}/${FILE_PATH}data/* ${WORK_DIR}/data/

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
 # renew.sh 用于在线同步最新的 backup.sh 和 restore.sh 脚本
+# 如是 IPv6 only 或者大陆机器，需要 Github 加速网，可自行查找放在 GH_PROXY 处 ，如 https://mirror.ghproxy.com/ ，能不用就不用，减少因加速网导致的故障。
 
-GH_PROXY=https://cdn2.cloudflare.now.cc/
+GH_PROXY=
 WORK_DIR=
 TEMP_DIR=
 

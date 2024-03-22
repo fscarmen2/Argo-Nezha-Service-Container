@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# 各变量默认值
-GH_PROXY=https://cdn2.cloudflare.now.cc/
+# 各变量默认值，如是 IPv6 only 或者大陆机器，需要 Github 加速网，可自行查找放在 GH_PROXY 处 ，如 https://mirror.ghproxy.com/ ，能不用就不用，减少因加速网导致的故障。
+GH_PROXY=
 WORK_DIR='/opt/nezha/dashboard'
 TEMP_DIR='/tmp/nezha'
 START_PORT='5000'

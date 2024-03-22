@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
-# backup.sh 传参 a 自动还原； 传参 m 手动还原； 传参 f 强制更新面板 app 文件及 cloudflared 文件，并备份数据至成备份库
+# backup.sh 传参 a 自动还原； 传参 m 手动还原； 传参 f 强制更新面板 app 文件及 cloudflared 文件，并备份数据至成备份库。
+# 如是 IPv6 only 或者大陆机器，需要 Github 加速网，可自行查找放在 GH_PROXY 处 ，如 https://mirror.ghproxy.com/ ，能不用就不用，减少因加速网导致的故障。
 
-GH_PROXY=https://cdn2.cloudflare.now.cc/
+GH_PROXY=
 GH_PAT=
 GH_BACKUP_USER=
 GH_EMAIL=
@@ -15,7 +16,7 @@ IS_DOCKER=
 
 ########
 
-# version: 2024.01.11
+# version: 2024.03.21
 
 warning() { echo -e "\033[31m\033[01m$*\033[0m"; }  # 红色
 error() { echo -e "\033[31m\033[01m$*\033[0m" && exit 1; } # 红色
@@ -164,7 +165,8 @@ if [[ "${DASHBOARD_UPDATE}${CLOUDFLARED_UPDATE}${IS_BACKUP}${FORCE_UPDATE}" =~ t
       IS_UPLOAD="$?"
       cd ..
       rm -rf $GH_REPO
-      [ "$IS_UPLOAD" = 0 ] && echo "dashboard-$TIME.tar.gz" > $WORK_DIR/dbfile && info "\n Succeed to upload the backup files dashboard-$TIME.tar.gz to Github.\n" || hint "\n Failed to upload the backup files dashboard-$TIME.tar.gz to Github.\n"
+      # 如备份成功，自锁一定时间以防 Github 缓存的原因导致数据马上被还原
+      [ "$IS_UPLOAD" = 0 ] && touch $(awk -F '=' '/NO_ACTION_FLAG/{print $2; exit}' $WORK_DIR/restore.sh)1 && echo "dashboard-$TIME.tar.gz" > $WORK_DIR/dbfile && info "\n Succeed to upload the backup files dashboard-$TIME.tar.gz to Github.\n" || hint "\n Failed to upload the backup files dashboard-$TIME.tar.gz to Github.\n"
     fi
   fi
 fi
