@@ -147,7 +147,7 @@ version: '3.8'
 services.
     argo-nezha.
         image: fscarmen/argo-nezha
-        --pull always
+        pull_policy: always
         container_name: nezha_dashboard
         restart: always
         environment:
@@ -157,7 +157,7 @@ services.
             - GH_REPO=<fill in customized>
             - GH_CLIENTID=<fill in obtained>
             - GH_CLIENTSECRET=<fill in fetched>
-            - ARGO_AUTH='<Fill in the fetched Argo json or token>'
+            - ARGO_AUTH=<Fill in the fetched Argo json or token>
             - ARGO_DOMAIN=<fill in customized>
             - GH_BACKUP_USER=<Optional, Optional, Optional! If it is consistent with GH_USER, you can leave it blank>
             - REVERSE_PROXY_MODE=<Optional, Optional, Optional! If you want to use Nginx or gRPCwebProxy instead of Caddy for reverse proxying, set this value to `nginx` or `grpcwebproxy>

@@ -147,7 +147,7 @@ version: '3.8'
 services:
     argo-nezha:
         image: fscarmen/argo-nezha
-        pull: always
+        pull_policy: always
         container_name: nezha_dashboard
         restart: always
         environment:
@@ -157,7 +157,7 @@ services:
             - GH_REPO=<填自定义的>
             - GH_CLIENTID=<填获取的>
             - GH_CLIENTSECRET=<填获取的>
-            - ARGO_AUTH='<填获取的 Argo json 或者 token>'
+            - ARGO_AUTH=<填获取的 Argo json 或者 token>
             - ARGO_DOMAIN=<填自定义的>
             - GH_BACKUP_USER=<选填，选填，选填! 如与 GH_USER 一致，可以不要该环境变量>
             - REVERSE_PROXY_MODE=<选填，选填，选填! 如想用 Nginx 或 gRPCwebProxy 替代 Caddy 反代的话，请设置该变量并赋值为 `nginx` 或 `grpcwebproxy`>
