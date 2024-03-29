@@ -226,8 +226,8 @@ check_dependencies() {
     CHECK_WGET=$(wget 2>&1 | head -n 1)
     grep -qi 'busybox' <<< "$CHECK_WGET" && ${PACKAGE_INSTALL[int]} wget >/dev/null 2>&1
 
-    DEPS_CHECK=("bash" "rc-update" "git" "ss" "openssl" "python3")
-    DEPS_INSTALL=("bash" "openrc" "git" "iproute2" "openssl" "python3")
+    DEPS_CHECK=("bash" "rc-update" "git" "ss" "openssl" "python3" "unzip")
+    DEPS_INSTALL=("bash" "openrc" "git" "iproute2" "openssl" "python3" "unzip")
     for ((g=0; g<${#DEPS_CHECK[@]}; g++)); do [ ! $(type -p ${DEPS_CHECK[g]}) ] && [[ ! "${DEPS[@]}" =~ "${DEPS_INSTALL[g]}" ]] && DEPS+=(${DEPS_INSTALL[g]}); done
     if [ "${#DEPS[@]}" -ge 1 ]; then
       info "\n $(text 7) ${DEPS[@]} \n"
@@ -242,8 +242,8 @@ check_dependencies() {
   # 非 Alpine 系统安装的依赖
   else
     # 检测 Linux 系统的依赖，升级库并重新安装依赖
-    DEPS_CHECK=("wget" "systemctl" "cron" "ss" "git" "timedatectl" "openssl")
-    DEPS_INSTALL=("wget" "systemctl" "cron" "iproute2" "git" "timedatectl" "openssl")
+    DEPS_CHECK=("wget" "systemctl" "ss" "git" "timedatectl" "openssl" "unzip")
+    DEPS_INSTALL=("wget" "systemctl" "iproute2" "git" "timedatectl" "openssl" "unzip")
     for ((g=0; g<${#DEPS_CHECK[@]}; g++)); do [ ! $(type -p ${DEPS_CHECK[g]}) ] && [[ ! "${DEPS[@]}" =~ "${DEPS_INSTALL[g]}" ]] && DEPS+=(${DEPS_INSTALL[g]}); done
     if [ "${#DEPS[@]}" -ge 1 ]; then
       info "\n $(text 7) ${DEPS[@]} \n"
