@@ -2,7 +2,7 @@
 
 # restore.sh 传参 a 自动还原 README.md 记录的文件，当本地与远程记录文件一样时不还原； 传参 f 不管本地记录文件，强制还原成备份库里 README.md 记录的文件； 传参 dashboard-***.tar.gz 还原成备份库里的该文件；不带参数则要求选择备份库里的文件名
 
-GH_PROXY=https://cdn2.cloudflare.now.cc/
+GH_PROXY=
 GH_PAT=
 GH_BACKUP_USER=
 GH_REPO=
@@ -14,7 +14,7 @@ IS_DOCKER=
 
 ########
 
-# version: 2024.3.21
+# version: 2024.04.02
 
 trap "rm -rf $TEMP_DIR; echo -e '\n' ;exit" INT QUIT TERM EXIT
 
@@ -141,14 +141,6 @@ if [ -e $TEMP_DIR/backup.tar.gz ]; then
   tar xzvf $TEMP_DIR/backup.tar.gz -C $TEMP_DIR ${CUSTOM_FULL_PATH[@]} ${FILE_PATH}data
   echo -e "↑↑↑↑↑↑↑↑↑↑ Restore-file list ↑↑↑↑↑↑↑↑↑↑\n\n"
 
-  # 处理 v0.15.17 之后自定义主题静态链接的路径问题，删除备份文件中 resource 下的非 custom 文件夹及文件
-  [ -d $TEMP_DIR/resource/static/theme-custom ] && mv -f $TEMP_DIR/resource/static/theme-custom $TEMP_DIR/resource/static/custom
-  [ -s $TEMP_DIR/resource/template/theme-custom/header.html ] && sed -i 's#/static/theme-custom/#/static-custom/#g' $TEMP_DIR/resource/template/theme-custom/header.html
-  if [ -d $TEMP_DIR/resource ]; then
-    find $TEMP_DIR/resource ! -path "$TEMP_DIR/resource/*/*custom*" -type f -delete
-    find $TEMP_DIR/resource ! -path "$TEMP_DIR/resource/*/*custom*" -type d -empty -delete
-  fi
-
   # 还原面板配置的最新信息
   sed -i "s@HTTPPort:.*@$CONFIG_HTTPPORT@; s@Language:.*@$CONFIG_LANGUAGE@; s@^GRPCPort:.*@$CONFIG_GRPCPORT@; s@gGRPCHost:.*@I$CONFIG_GRPCHOST@; s@ProxyGRPCPort:.*@$CONFIG_PROXYGRPCPORT@; s@Type:.*@$CONFIG_TYPE@; s@Admin:.*@$CONFIG_ADMIN@; s@ClientID:.*@$CONFIG_CLIENTID@; s@ClientSecret:.*@$CONFIG_CLIENTSECRET@I" ${TEMP_DIR}/${FILE_PATH}data/config.yaml
 
@@ -159,6 +151,14 @@ if [ -e $TEMP_DIR/backup.tar.gz ]; then
   [[ "$(awk '{print $NF}' <<< "$CONFIG_AVGPINGCOUNT")" =~ ^[0-9]+$ ]] && sed -i "s@AvgPingCount:.*@$CONFIG_AVGPINGCOUNT@" ${TEMP_DIR}/${FILE_PATH}data/config.yaml
 
   [[ "$(awk '{print $NF}' <<< "$CONFIG_MAXTCPPINGVALUE")" =~ ^[0-9]+$ ]] && sed -i "s@MaxTCPPingValue:.*@$CONFIG_MAXTCPPINGVALUE@" ${TEMP_DIR}/${FILE_PATH}data/config.yaml
+
+  # 如果是容器版本会有本地的客户端探针，Token 将是当前部署时生成的18位随机字符串，还原的时候，会把 sqlite.db 里的历史 Token 更换为新的。
+  if [ "$IS_DOCKER" = 1 ]; then
+    [ $(type -p sqlite3) ] || apt-get -y install sqlite3
+    DB_TOKEN=$(sqlite3 ${TEMP_DIR}/${FILE_PATH}data/sqlite.db "select secret from servers where created_at='2023-04-23 13:02:00.770756566+08:00'")
+    [ -n "$DB_TOKEN" ] && LOCAL_TOKEN=$(awk '/nezha-agent -s localhost/{print $NF}' /etc/supervisor/conf.d/damon.conf)
+    [ "$DB_TOKEN" != "$LOCAL_TOKEN" ] && sqlite3 ${TEMP_DIR}/${FILE_PATH}data/sqlite.db "update servers set secret='${LOCAL_TOKEN}' where created_at='2023-04-23 13:02:00.770756566+08:00'"
+  fi
 
   # 复制临时文件到正式的工作文件夹
   cp -rf ${TEMP_DIR}/${FILE_PATH}data/* ${WORK_DIR}/data/

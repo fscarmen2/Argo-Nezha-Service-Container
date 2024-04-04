@@ -144,12 +144,17 @@ docker run -dit \
 ### docker-compose 部署
 ```
 version: '3.8'
+networks:
+    nezha-dashboard:
+        name: nezha-dashboard
 services:
     argo-nezha:
         image: fscarmen/argo-nezha
         pull_policy: always
         container_name: nezha_dashboard
         restart: always
+        networks:
+            - nezha-dashboard
         environment:
             - GH_USER=<填 github 用户名>
             - GH_EMAIL=<<填 github 邮箱>
