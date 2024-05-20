@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# 各变量默认值，如是 IPv6 only 或者大陆机器，需要 Github 加速网，可自行查找放在 GH_PROXY 处 ，如 https://mirror.ghproxy.com/ ，能不用就不用，减少因加速网导致的故障。
-GH_PROXY=
+# 各变量默认值
+GH_PROXY=https://ghproxy.agrayman.gay/
 WORK_DIR='/opt/nezha/dashboard'
 TEMP_DIR='/tmp/nezha'
 START_PORT='5000'
@@ -120,10 +120,16 @@ check_root() {
 
 check_arch() {
   # 判断处理器架构
-  case $(uname -m) in
-    aarch64|arm64 ) ARCH=arm64 ;;
-    x86_64|amd64 ) ARCH=amd64 ;;
-    armv7* ) ARCH=arm ;;
+  case "$(uname -m)" in
+    aarch64|arm64 )
+      ARCH=arm64
+      ;;
+    x86_64|amd64 )
+      ARCH=amd64
+      ;;
+    armv7* )
+      ARCH=arm
+      ;;
     * ) error " $(text 2) "
   esac
 }
@@ -156,7 +162,7 @@ check_install() {
 
   if [ "$STATUS" = "$(text 26)" ]; then
     { wget -qO $TEMP_DIR/cloudflared ${GH_PROXY}https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$ARCH >/dev/null 2>&1 && chmod +x $TEMP_DIR/cloudflared >/dev/null 2>&1; }&
-    { DASHBOARD_LATEST=$(wget -qO- "https://api.github.com/repos/naiba/nezha/releases/latest" | awk -F '"' '/"tag_name"/{print $4}' || echo 'v0.15.17')
+    { DASHBOARD_LATEST=$(wget -qO- "${GH_PROXY}https://api.github.com/repos/naiba/nezha/releases/latest" | awk -F '"' '/"tag_name"/{print $4}' || echo 'v0.16.25')
       wget -qO $TEMP_DIR/dashboard.zip ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip >/dev/null 2>&1
       unzip -q $TEMP_DIR/dashboard.zip -d $TEMP_DIR 2>&1
       mv -f $TEMP_DIR/dist/dashboard-linux-$ARCH $TEMP_DIR/app >/dev/null 2>&1; }&
@@ -198,8 +204,8 @@ EOF
 
 check_system_info() {
   [ -s /etc/os-release ] && SYS="$(grep -i pretty_name /etc/os-release | cut -d \" -f2)"
-  [[ -z "$SYS" && $(type -p hostnamectl) ]] && SYS="$(hostnamectl | grep -i system | cut -d : -f2)"
-  [[ -z "$SYS" && $(type -p lsb_release) ]] && SYS="$(lsb_release -sd)"
+  [[ -z "$SYS" && -x "$(type -p hostnamectl)" ]] && SYS="$(hostnamectl | grep -i system | cut -d : -f2)"
+  [[ -z "$SYS" && -x "$(type -p lsb_release)" ]] && SYS="$(lsb_release -sd)"
   [[ -z "$SYS" && -s /etc/lsb-release ]] && SYS="$(grep -i description /etc/lsb-release | cut -d \" -f2)"
   [[ -z "$SYS" && -s /etc/redhat-release ]] && SYS="$(grep . /etc/redhat-release)"
   [[ -z "$SYS" && -s /etc/issue ]] && SYS="$(grep . /etc/issue | cut -d '\' -f1 | sed '/^[ ]*$/d')"
@@ -220,6 +226,11 @@ check_system_info() {
   [[ "$(echo "$SYS" | sed "s/[^0-9.]//g" | cut -d. -f1)" -lt "${MAJOR[int]}" ]] && error " $(text 6) "
 }
 
+# 检测是否需要启用 Github CDN，如能直接连通，则不使用
+check_cdn() {
+  [ -n "$GH_PROXY" ] && wget --server-response --quiet --output-document=/dev/null --no-check-certificate --tries=2 --timeout=3 https://raw.githubusercontent.com/fscarmen2/Argo-Nezha-Service-Container/main/README.md >/dev/null 2>&1 && unset GH_PROXY
+}
+
 check_dependencies() {
   # 如果是 Alpine，先升级 wget ，安装 systemctl-py 版
   if [ "$SYSTEM" = 'Alpine' ]; then
@@ -228,7 +239,7 @@ check_dependencies() {
 
     DEPS_CHECK=("bash" "rc-update" "git" "ss" "openssl" "python3" "unzip")
     DEPS_INSTALL=("bash" "openrc" "git" "iproute2" "openssl" "python3" "unzip")
-    for ((g=0; g<${#DEPS_CHECK[@]}; g++)); do [ ! $(type -p ${DEPS_CHECK[g]}) ] && [[ ! "${DEPS[@]}" =~ "${DEPS_INSTALL[g]}" ]] && DEPS+=(${DEPS_INSTALL[g]}); done
+    for ((g=0; g<${#DEPS_CHECK[@]}; g++)); do [ ! -x "$(type -p ${DEPS_CHECK[g]})" ] && [[ ! "${DEPS[@]}" =~ "${DEPS_INSTALL[g]}" ]] && DEPS+=(${DEPS_INSTALL[g]}); done
     if [ "${#DEPS[@]}" -ge 1 ]; then
       info "\n $(text 7) ${DEPS[@]} \n"
       ${PACKAGE_UPDATE[int]} >/dev/null 2>&1
@@ -237,14 +248,14 @@ check_dependencies() {
       info "\n $(text 8) \n"
     fi
 
-    [ ! $(type -p systemctl) ] && wget https://raw.githubusercontent.com/gdraheim/docker-systemctl-replacement/master/files/docker/systemctl3.py -O /bin/systemctl && chmod a+x /bin/systemctl
+    [ ! -x "$(type -p systemctl)" ] && wget ${GH_PROXY}https://raw.githubusercontent.com/gdraheim/docker-systemctl-replacement/master/files/docker/systemctl3.py -O /bin/systemctl && chmod a+x /bin/systemctl
 
   # 非 Alpine 系统安装的依赖
   else
     # 检测 Linux 系统的依赖，升级库并重新安装依赖
     DEPS_CHECK=("wget" "systemctl" "ss" "git" "timedatectl" "openssl" "unzip")
     DEPS_INSTALL=("wget" "systemctl" "iproute2" "git" "timedatectl" "openssl" "unzip")
-    for ((g=0; g<${#DEPS_CHECK[@]}; g++)); do [ ! $(type -p ${DEPS_CHECK[g]}) ] && [[ ! "${DEPS[@]}" =~ "${DEPS_INSTALL[g]}" ]] && DEPS+=(${DEPS_INSTALL[g]}); done
+    for ((g=0; g<${#DEPS_CHECK[@]}; g++)); do [ ! -x "$(type -p ${DEPS_CHECK[g]})" ] && [[ ! "${DEPS[@]}" =~ "${DEPS_INSTALL[g]}" ]] && DEPS+=(${DEPS_INSTALL[g]}); done
     if [ "${#DEPS[@]}" -ge 1 ]; then
       info "\n $(text 7) ${DEPS[@]} \n"
       ${PACKAGE_UPDATE[int]} >/dev/null 2>&1
@@ -318,7 +329,7 @@ install() {
 
   # 根据 caddy，grpcwebproxy 或 nginx 作处理
   if  [ "$REVERSE_PROXY_MODE" = 'caddy' ]; then
-    local CADDY_LATEST=$(wget -qO- "https://api.github.com/repos/caddyserver/caddy/releases/latest" | awk -F [v\"] '/"tag_name"/{print $5}' || echo '2.7.6')
+    local CADDY_LATEST=$(wget -qO- "${GH_PROXY}https://api.github.com/repos/caddyserver/caddy/releases/latest" | awk -F [v\"] '/"tag_name"/{print $5}' || echo '2.7.6')
     wget -c ${GH_PROXY}https://github.com/caddyserver/caddy/releases/download/v${CADDY_LATEST}/caddy_${CADDY_LATEST}_linux_${ARCH}.tar.gz -qO- | tar xz -C $TEMP_DIR caddy >/dev/null 2>&1
     GRPC_PROXY_RUN="$WORK_DIR/caddy run --config $WORK_DIR/Caddyfile --watch"
     cat > $TEMP_DIR/Caddyfile  << EOF
@@ -338,7 +349,7 @@ install() {
 EOF
 
   elif [ "$REVERSE_PROXY_MODE" = 'nginx' ]; then
-    [ ! $(type -p nginx) ] && ${PACKAGE_INSTALL[int]} nginx
+    [ ! -x "$(type -p nginx)" ] && ${PACKAGE_INSTALL[int]} nginx
     GRPC_PROXY_RUN="nginx -c $WORK_DIR/nginx.conf"
     cat > $TEMP_DIR/nginx.conf  << EOF
 user www-data;
@@ -651,6 +662,7 @@ menu() {
 
 select_language
 check_root
+check_cdn
 check_system_info
 check_arch
 check_install

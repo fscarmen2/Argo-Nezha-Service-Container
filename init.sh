@@ -4,7 +4,7 @@
 if [ ! -s /etc/supervisor/conf.d/damon.conf ]; then
 
   # 设置 Github CDN 及若干变量，如是 IPv6 only 或者大陆机器，需要 Github 加速网，可自行查找放在 GH_PROXY 处 ，如 https://mirror.ghproxy.com/ ，能不用就不用，减少因加速网导致的故障。
-  GH_PROXY=
+  GH_PROXY=https://ghproxy.agrayman.gay/
   GRPC_PROXY_PORT=443
   GRPC_PORT=5555
   WEB_PORT=80
@@ -24,6 +24,9 @@ if [ ! -s /etc/supervisor/conf.d/damon.conf ]; then
   [[ "$ARGO_AUTH" =~ ey[A-Z0-9a-z=]{120,250}$ ]] && ARGO_AUTH=$(awk '{print $NF}' <<< "$ARGO_AUTH") # Token 复制全部，只取最后的 ey 开始的
   [ -n "$GH_REPO" ] && grep -q '/' <<< "$GH_REPO" && GH_REPO=$(awk -F '/' '{print $NF}' <<< "$GH_REPO")  # 填了项目全路径的处理
 
+  # 检测是否需要启用 Github CDN，如能直接连通，则不使用
+  [ -n "$GH_PROXY" ] && wget --server-response --quiet --output-document=/dev/null --no-check-certificate --tries=2 --timeout=3 https://raw.githubusercontent.com/fscarmen2/Argo-Nezha-Service-Container/main/README.md >/dev/null 2>&1 && unset GH_PROXY
+
   # 设置 DNS
   echo -e "nameserver 127.0.0.11\nnameserver 8.8.4.4\nnameserver 223.5.5.5\nnameserver 2001:4860:4860::8844\nnameserver 2400:3200::1\n" > /etc/resolv.conf
 
@@ -32,10 +35,16 @@ if [ ! -s /etc/supervisor/conf.d/damon.conf ]; then
   dpkg-reconfigure -f noninteractive tzdata
 
   # 判断处理器架构
-  case $(uname -m) in
-    aarch64|arm64 ) ARCH=arm64 ;;
-    x86_64|amd64 ) ARCH=amd64 ;;
-    armv7* ) ARCH=arm ;;
+  case "$(uname -m)" in
+    aarch64|arm64 )
+      ARCH=arm64
+      ;;
+    x86_64|amd64 )
+      ARCH=amd64
+      ;;
+    armv7* )
+      ARCH=arm
+      ;;
     * ) error " $(text 2) "
   esac
 
@@ -78,7 +87,7 @@ http {
 }
 EOF
   else
-    CADDY_LATEST=$(wget -qO- "https://api.github.com/repos/caddyserver/caddy/releases/latest" | awk -F [v\"] '/"tag_name"/{print $5}' || echo '2.7.6')
+    CADDY_LATEST=$(wget -qO- "${GH_PROXY}https://api.github.com/repos/caddyserver/caddy/releases/latest" | awk -F [v\"] '/"tag_name"/{print $5}' || echo '2.7.6')
     wget -c ${GH_PROXY}https://github.com/caddyserver/caddy/releases/download/v${CADDY_LATEST}/caddy_${CADDY_LATEST}_linux_${ARCH}.tar.gz -qO- | tar xz -C $WORK_DIR caddy
     GRPC_PROXY_RUN="$WORK_DIR/caddy run --config $WORK_DIR/Caddyfile --watch"
     cat > $WORK_DIR/Caddyfile  << EOF
@@ -99,7 +108,7 @@ EOF
   fi
 
   # 下载需要的应用
-  DASHBOARD_LATEST=$(wget -qO- "https://api.github.com/repos/naiba/nezha/releases/latest" | awk -F '"' '/"tag_name"/{print $4}')
+  DASHBOARD_LATEST=$(wget -qO- "${GH_PROXY}https://api.github.com/repos/naiba/nezha/releases/latest" | awk -F '"' '/"tag_name"/{print $4}')
   wget -O /tmp/dashboard.zip ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip
   unzip /tmp/dashboard.zip -d /tmp
   mv -f /tmp/dist/dashboard-linux-$ARCH $WORK_DIR/app
