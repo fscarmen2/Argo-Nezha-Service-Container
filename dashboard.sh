@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # 各变量默认值
-GH_PROXY=https://ghproxy.agrayman.gay/
+GH_PROXY='https://ghproxy.lvedong.eu.org/'
 WORK_DIR='/opt/nezha/dashboard'
 TEMP_DIR='/tmp/nezha'
 START_PORT='5000'
@@ -163,9 +163,7 @@ check_install() {
   if [ "$STATUS" = "$(text 26)" ]; then
     { wget -qO $TEMP_DIR/cloudflared ${GH_PROXY}https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$ARCH >/dev/null 2>&1 && chmod +x $TEMP_DIR/cloudflared >/dev/null 2>&1; }&
     { DASHBOARD_LATEST=$(wget -qO- "${GH_PROXY}https://api.github.com/repos/naiba/nezha/releases/latest" | awk -F '"' '/"tag_name"/{print $4}' || echo 'v0.16.25')
-      wget -qO $TEMP_DIR/dashboard.zip ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip >/dev/null 2>&1
-      unzip -q $TEMP_DIR/dashboard.zip -d $TEMP_DIR 2>&1
-      mv -f $TEMP_DIR/dist/dashboard-linux-$ARCH $TEMP_DIR/app >/dev/null 2>&1; }&
+      wget -qO $TEMP_DIR/dashboard.zip ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip >/dev/null 2>&1; }&
   fi
 }
 
@@ -389,6 +387,12 @@ EOF
   fi
 
   wait
+
+  # unzip 解压面板主应用
+  if [ "$STATUS" = "$(text 26)" ]; then
+    unzip -q $TEMP_DIR/dashboard.zip -d $TEMP_DIR 2>&1
+    mv -f $TEMP_DIR/dist/dashboard-linux-$ARCH $TEMP_DIR/app >/dev/null 2>&1
+  fi
 
   # 检测下载的文件或文件夹是否齐
   for f in ${TEMP_DIR}/{cloudflared,app,nezha.key,nezha.csr,nezha.pem}; do
