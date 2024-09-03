@@ -390,8 +390,8 @@ EOF
 
   # unzip 解压面板主应用
   if [ "$STATUS" = "$(text 26)" ]; then
-    unzip -q $TEMP_DIR/dashboard.zip -d $TEMP_DIR 2>&1
-    mv -f $TEMP_DIR/dist/dashboard-linux-$ARCH $TEMP_DIR/app >/dev/null 2>&1
+    unzip -o -q $TEMP_DIR/dashboard.zip -d $TEMP_DIR 2>&1
+    mv -f $TEMP_DIR/dashboard-linux-$ARCH $TEMP_DIR/app >/dev/null 2>&1
   fi
 
   # 检测下载的文件或文件夹是否齐
