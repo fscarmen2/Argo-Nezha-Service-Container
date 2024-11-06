@@ -162,7 +162,7 @@ check_install() {
 
   if [ "$STATUS" = "$(text 26)" ]; then
     { wget -qO $TEMP_DIR/cloudflared ${GH_PROXY}https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$ARCH >/dev/null 2>&1 && chmod +x $TEMP_DIR/cloudflared >/dev/null 2>&1; }&
-    { DASHBOARD_LATEST=$(wget -qO- "${GH_PROXY}https://api.github.com/repos/naiba/nezha/releases/latest" | awk -F '"' '/"tag_name"/{print $4}' || echo 'v0.16.25')
+    { DASHBOARD_LATEST=$(wget -qO- "${GH_PROXY}https://api.github.com/repos/naiba/nezha/releases/latest" | awk -F '"' '/"tag_name"/{print $4}' || echo 'v0.20.9')
       wget -qO $TEMP_DIR/dashboard.zip ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip >/dev/null 2>&1; }&
   fi
 }
@@ -391,6 +391,7 @@ EOF
   # unzip 解压面板主应用
   if [ "$STATUS" = "$(text 26)" ]; then
     unzip -o -q $TEMP_DIR/dashboard.zip -d $TEMP_DIR 2>&1
+    chmod +x $TEMP_DIR/dashboard-linux-$ARCH 2>&1
     mv -f $TEMP_DIR/dashboard-linux-$ARCH $TEMP_DIR/app >/dev/null 2>&1
   fi
 
