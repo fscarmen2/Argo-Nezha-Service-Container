@@ -3,7 +3,7 @@
 # 首次运行时执行以下流程，再次运行时存在 /etc/supervisor/conf.d/damon.conf 文件，直接到最后一步
 if [ ! -s /etc/supervisor/conf.d/damon.conf ]; then
 
-  # 设置 Github CDN 及若干变量，如是 IPv6 only 或者大陆机器，需要 Github 加速网，可自行查找放在 GH_PROXY 处 ，如 https://mirror.ghproxy.com/ ，能不用就不用，减少因加速网导致的故障。
+  # 设置 Github CDN 及若干变量，如是 IPv6 only 或者大陆机器，需要 Github 加速网，可自行查找放在 GH_PROXY 处 ，如 https://ghproxy.lvedong.eu.org/ ，能不用就不用，减少因加速网导致的故障。
   GH_PROXY='https://ghproxy.lvedong.eu.org/'
   GRPC_PROXY_PORT=443
   GRPC_PORT=5555
@@ -108,13 +108,19 @@ EOF
   fi
 
   # 下载需要的应用
-  DASHBOARD_LATEST=$(wget -qO- "${GH_PROXY}https://api.github.com/repos/naiba/nezha/releases/latest" | awk -F '"' '/"tag_name"/{print $4}')
+  if [ -z "$DASHBOARD_VERSION" ]; then
+    DASHBOARD_LATEST='v0.20.13'
+  elif [[ "$DASHBOARD_VERSION" =~ 0\.[0-9]{1,2}\.[0-9]{1,2}$ ]]; then
+    DASHBOARD_LATEST=$(sed 's/v//; s/^/v&/' <<< "$DASHBOARD_VERSION")
+  else
+    error "The DASHBOARD_VERSION variable should be in a format like v0.00.00, please check."
+  fi
   wget -O /tmp/dashboard.zip ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip
   unzip -o /tmp/dashboard.zip -d /tmp
   chmod +x /tmp/dashboard-linux-$ARCH
   mv -f /tmp/dashboard-linux-$ARCH $WORK_DIR/app
   wget -qO $WORK_DIR/cloudflared ${GH_PROXY}https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$ARCH
-  wget -O $WORK_DIR/nezha-agent.zip ${GH_PROXY}https://github.com/nezhahq/agent/releases/latest/download/nezha-agent_linux_$ARCH.zip
+  wget -O $WORK_DIR/nezha-agent.zip ${GH_PROXY}https://github.com/nezhahq/agent/releases/download/v0.20.5/nezha-agent_linux_$ARCH.zip
   unzip -o $WORK_DIR/nezha-agent.zip -d $WORK_DIR/
   rm -rf $WORK_DIR/nezha-agent.zip /tmp/dist /tmp/dashboard.zip
 
@@ -202,6 +208,7 @@ ARCH=$ARCH
 WORK_DIR=$WORK_DIR
 DAYS=5
 IS_DOCKER=1
+DASHBOARD_VERSION=$DASHBOARD_VERSION
 
 ########
 EOF
@@ -274,7 +281,7 @@ stderr_logfile=/dev/null
 stdout_logfile=/dev/null
 
 [program:agent]
-command=$WORK_DIR/nezha-agent -s localhost:$GRPC_PORT -p $LOCAL_TOKEN
+command=$WORK_DIR/nezha-agent -s localhost:$GRPC_PORT -p $LOCAL_TOKEN --disable-auto-update
 autostart=true
 autorestart=true
 stderr_logfile=/dev/null

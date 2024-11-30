@@ -102,7 +102,8 @@ Argo 隧道认证方式有 json 和 token，使用两个方式其中之一。推
   | REVERSE_PROXY_MODE  | 否 | 默认使用 Caddy 应用来反代，这时可以不填写该变量；如需 Nginx 或 gRPCwebProxy 反代，请设置该值为 `nginx ` 或 `grpcwebproxy` |
   | ARGO_AUTH           | 是 | Json: 从 https://fscarmen.cloudflare.now.cc 获取的 Argo Json<br> Token: 从 Cloudflare 官网获取 |
   | ARGO_DOMAIN         | 是 | Argo 域名 |
-  | NO_AUTO_RENEW       | 否 | 默认不需要该变量，即每天定时同步在线最新的备份和还原脚本。如不需要该功能，设置此变量，并赋值为 `1` | 
+  | NO_AUTO_RENEW       | 否 | 默认不需要该变量，即每天定时同步在线最新的备份和还原脚本。如不需要该功能，设置此变量，并赋值为 `1` |
+  | DASHBOARD_VERSION   | 否 | 指定面板的版本，以 `v0.00.00` 的格式，后续将固定在该版本不会升级，不填则使用默认的 `v0.20.13` |
 
 Koyeb
 
@@ -137,7 +138,8 @@ docker run -dit \
            -e ARGO_DOMAIN=<填自定义的> \
            -e GH_BACKUP_USER=<选填，选填，选填! 如与 GH_USER 一致，可以不要该环境变量> \
            -e REVERSE_PROXY_MODE=<选填，选填，选填! 如想用 Nginx 或 gRPCwebProxy 替代 Caddy 反代的话，请设置该变量并赋值为 `nginx` 或 `grpcwebproxy`> \
-           -e NO_AUTO_RENEW=<选填，选填，选填! 如果不需要自动在线同步最新的 backup.sh 和 restore.sh，请设置该变量并赋值为 `1`> 
+           -e NO_AUTO_RENEW=<选填，选填，选填! 如果不需要自动在线同步最新的 backup.sh 和 restore.sh，请设置该变量并赋值为 `1`> \
+           -e DASHBOARD_VERSION=<选填，选填，选填! 指定面板的版本，以 `v0.00.00` 的格式，后续将固定在该版本不会升级，不填则使用默认的 `v0.20.13`> \
            fscarmen/argo-nezha
 ```
 
@@ -167,6 +169,7 @@ services:
             - GH_BACKUP_USER=<选填，选填，选填! 如与 GH_USER 一致，可以不要该环境变量>
             - REVERSE_PROXY_MODE=<选填，选填，选填! 如想用 Nginx 或 gRPCwebProxy 替代 Caddy 反代的话，请设置该变量并赋值为 `nginx` 或 `grpcwebproxy`>
             - NO_AUTO_RENEW=<选填，选填，选填! 如果不需要自动在线同步最新的 backup.sh 和 restore.sh，请设置该变量并赋值为 `1`>
+            - DASHBOARD_VERSION=<选填，选填，选填! 指定面板的版本，以 `v0.00.00` 的格式，后续将固定在该版本不会升级，不填则使用默认的 `v0.20.13`>
 ```
 
 

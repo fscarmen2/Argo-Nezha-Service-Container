@@ -91,8 +91,12 @@ E[38]="Please choose gRPC proxy mode:\n 1. Caddy (default)\n 2. Nginx\n 3. gRPCw
 C[38]="请选择 gRPC 代理模式:\n 1. Caddy (默认)\n 2. Nginx\n 3. gRPCwebProxy"
 E[39]="To uninstall Nginx press [y], it is not uninstalled by default:"
 C[39]="如要卸载 Nginx 请按 [y]，默认不卸载:"
-E[40]="Default: enable automatic online synchronization of the latest backup.sh and restore.sh scripts. If you do not want this feature, enter [n]:"
-C[40]="默认开启自动在线同步最新 backup.sh 和 restore.sh 脚本的功能，如不需要该功能，请输入 [n]:"
+E[40]="Please enter the specified Nezha dashboard version, it will be fixed in this version, if you skip it, the default v0.20.13 will be used. :"
+C[40]="请填入指定面板版本,后续将固定在该版本，跳过则使用默认的 v0.20.13 :"
+E[41]="Default: enable automatic online synchronization of the latest backup.sh and restore.sh scripts. If you do not want this feature, enter [n]:"
+C[41]="默认开启自动在线同步最新 backup.sh 和 restore.sh 脚本的功能，如不需要该功能，请输入 [n]:"
+E[42]="The DASHBOARD_VERSION variable should be in a format like v0.00.00 or left blank. Please check."
+C[42]="变量 DASHBOARD_VERSION 必须以 v0.00.00 的格式或者留空，请检查"
 
 # 自定义字体彩色，read 函数
 warning() { echo -e "\033[31m\033[01m$*\033[0m"; }  # 红色
@@ -162,8 +166,6 @@ check_install() {
 
   if [ "$STATUS" = "$(text 26)" ]; then
     { wget -qO $TEMP_DIR/cloudflared ${GH_PROXY}https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$ARCH >/dev/null 2>&1 && chmod +x $TEMP_DIR/cloudflared >/dev/null 2>&1; }&
-    { DASHBOARD_LATEST=$(wget -qO- "${GH_PROXY}https://api.github.com/repos/naiba/nezha/releases/latest" | awk -F '"' '/"tag_name"/{print $4}' || echo 'v0.20.9')
-      wget -qO $TEMP_DIR/dashboard.zip ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip >/dev/null 2>&1; }&
   fi
 }
 
@@ -272,12 +274,12 @@ certificate() {
 }
 
 dashboard_variables() {
-  [ -z "$GH_USER"] && reading " (1/11) $(text 9) " GH_USER
-  [ -z "$GH_CLIENTID"] && reading "\n (2/11) $(text 10) " GH_CLIENTID
-  [ -z "$GH_CLIENTSECRET"] && reading "\n (3/11) $(text 11) " GH_CLIENTSECRET
+  [ -z "$GH_USER" ] && reading " (1/12) $(text 9) " GH_USER
+  [ -z "$GH_CLIENTID" ] && reading "\n (2/12) $(text 10) " GH_CLIENTID
+  [ -z "$GH_CLIENTSECRET" ] && reading "\n (3/12) $(text 11) " GH_CLIENTSECRET
   local a=5
   until [[ "$ARGO_AUTH" =~ TunnelSecret || "$ARGO_AUTH" =~ ^[A-Z0-9a-z=]{120,250}$ || "$ARGO_AUTH" =~ .*cloudflared.*service[[:space:]]+install[[:space:]]+[A-Z0-9a-z=]{1,100} ]]; do
-    [ "$a" = 0 ] && error "\n $(text 3) \n" || reading "\n (4/11) $(text 12) " ARGO_AUTH
+    [ "$a" = 0 ] && error "\n $(text 3) \n" || reading "\n (4/12) $(text 12) " ARGO_AUTH
     if [[ "$ARGO_AUTH" =~ TunnelSecret ]]; then
       ARGO_JSON=${ARGO_AUTH//[ ]/}
     elif [[ "$ARGO_AUTH" =~ ^[A-Z0-9a-z=]{120,250}$ ]]; then
@@ -291,12 +293,12 @@ dashboard_variables() {
   done
 
   # 处理可能输入的错误，去掉开头和结尾的空格，去掉最后的 :
-  [ -z "$ARGO_DOMAIN"] && reading "\n (5/11) $(text 13) " ARGO_DOMAIN
+  [ -z "$ARGO_DOMAIN" ] && reading "\n (5/12) $(text 13) " ARGO_DOMAIN
   ARGO_DOMAIN=$(sed 's/[ ]*//g; s/:[ ]*//' <<< "$ARGO_DOMAIN")
   { certificate; }&
 
   # # 用户选择使用 gRPC 反代方式: Nginx / Caddy / grpcwebproxy，默认为 Caddy
-  [ -z "$REVERSE_PROXY_MODE" ] && info "\n (6/11) $(text 38) \n" && reading " $(text 24) " REVERSE_PROXY_CHOOSE
+  [ -z "$REVERSE_PROXY_MODE" ] && info "\n (6/12) $(text 38) \n" && reading " $(text 24) " REVERSE_PROXY_CHOOSE
   case "$REVERSE_PROXY_CHOOSE" in
     2 ) REVERSE_PROXY_MODE=nginx ;;
     3 ) REVERSE_PROXY_MODE=grpcwebproxy ;;
@@ -305,15 +307,26 @@ dashboard_variables() {
 
   [[ -z "$GH_USER" || -z "$GH_CLIENTID" || -z "$GH_CLIENTSECRET" || -z "$ARGO_AUTH" || -z "$ARGO_DOMAIN" ]] && error "\n $(text 18) "
 
-  [ -z "$GH_REPO"] && reading "\n (7/11) $(text 14) " GH_REPO
+  [ -z "$GH_REPO"] && reading "\n (7/12) $(text 14) " GH_REPO
   if [ -n "$GH_REPO" ]; then
-    reading "\n (8/11) $(text 15) " GH_BACKUP_USER
+    [ -z "$GH_BACKUP_USER" ] && reading "\n (8/12) $(text 15) " GH_BACKUP_USER
     GH_BACKUP_USER=${GH_BACKUP_USER:-$GH_USER}
-    [ -z "$GH_EMAIL"] && reading "\n (9/11) $(text 16) " GH_EMAIL
-    [ -z "$GH_PAT"] && reading "\n (10/11) $(text 17) " GH_PAT
+    [ -z "$GH_EMAIL"] && reading "\n (9/12) $(text 16) " GH_EMAIL
+    [ -z "$GH_PAT"] && reading "\n (10/12) $(text 17) " GH_PAT
   fi
 
-  [ -z "$AUTO_RENEW_OR_NOT"] && reading "\n (11/11) $(text 40) " AUTO_RENEW_OR_NOT
+  # 询问版本自动后台下载
+  [ -z "$DASHBOARD_VERSION" ] && reading "\n (11/12) $(text 40) " DASHBOARD_VERSION
+  if [ -z "$DASHBOARD_VERSION" ]; then
+    DASHBOARD_LATEST='v0.20.13'
+  elif [[ "$DASHBOARD_VERSION" =~ 0\.[0-9]{1,2}\.[0-9]{1,2}$ ]]; then
+    DASHBOARD_LATEST=$(sed 's/[A-Za-z]//; s/^/v&/' <<< "$DASHBOARD_VERSION")
+  else
+    error "\n $(text 42) \n"
+  fi
+  { wget -qO $TEMP_DIR/dashboard.zip ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip >/dev/null 2>&1; }&
+
+  [ -z "$AUTO_RENEW_OR_NOT"] && reading "\n (12/12) $(text 41) " AUTO_RENEW_OR_NOT
   grep -qiw 'n' <<< "$AUTO_RENEW_OR_NOT" && IS_AUTO_RENEW=#
 }
 
@@ -534,6 +547,7 @@ ARCH=$ARCH
 WORK_DIR=$WORK_DIR
 DAYS=5
 IS_DOCKER=0
+DASHBOARD_VERSION=$DASHBOARD_VERSION
 
 ########
 EOF

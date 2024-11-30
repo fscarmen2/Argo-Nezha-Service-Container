@@ -103,6 +103,7 @@ Variables used
   | ARGO_AUTH          | Yes | Argo Json from https://fscarmen.cloudflare.now.cc<br>Argo token from Cloudflare official website  |
   | ARGO_DOMAIN        | Yes | Argo domain |
   | NO_AUTO_RENEW      | No | The latest backup and restore scripts are synchronized online regularly every day. If you don't need this feature, set this variable and assign it a value of `1` |
+  | DASHBOARD_VERSION  | No | Specify the version of dashboard, in the format of v0.00.00. Nezha dashboard will be fixed at this version and will not be upgraded, if you don't fill in the blank, it will use the default v0.20.13 |
 
 Koyeb
 
@@ -138,6 +139,7 @@ docker run -dit \
            -e GH_BACKUP_USER=<Optional, Optional, Optional! If it is consistent with GH_USER, you can leave it blank> \
            -e REVERSE_PROXY_MODE=<Optional, Optional, Optional! If you want to use Nginx or gRPCwebProxy instead of Caddy for reverse proxying, set this value to `nginx` or `grpcwebproxy`> \
            -e NO_AUTO_RENEW=<Optional, Optional, Optional! If you don't need synchronized online, set this variable and assign it a value of `1`>
+           -e DASHBOARD_VERSION=<Specify the version of dashboard, in the format of `v0.00.00`. Nezha dashboard will be fixed at this version and will not be upgraded, if you don't fill in the blank, it will use the default `v0.20.13`> \
            fscarmen/argo-nezha
 ```
 
@@ -167,6 +169,7 @@ services.
             - GH_BACKUP_USER=<Optional, Optional, Optional! If it is consistent with GH_USER, you can leave it blank>
             - REVERSE_PROXY_MODE=<Optional, Optional, Optional! If you want to use Nginx or gRPCwebProxy instead of Caddy for reverse proxying, set this value to `nginx` or `grpcwebproxy>
             - NO_AUTO_RENEW=<Optional, Optional, Optional! If you don't need synchronized online, set this variable and assign it a value of `1`>
+            - DASHBOARD_VERSION=<Specify the version of dashboard, in the format of `v0.00.00`. Nezha dashboard will be fixed at this version and will not be upgraded, if you don't fill in the blank, it will use the default `v0.20.13`>
 ```
 
 
