@@ -117,6 +117,7 @@ EOF
   fi
   wget -O /tmp/dashboard.zip ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip
   unzip -o /tmp/dashboard.zip -d /tmp
+  [ -d /tmp/dist ] && mv /tmp/dist/dashboard-linux-$ARCH /tmp/dashboard-linux-$ARCH
   chmod +x /tmp/dashboard-linux-$ARCH
   mv -f /tmp/dashboard-linux-$ARCH $WORK_DIR/app
   wget -qO $WORK_DIR/cloudflared ${GH_PROXY}https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$ARCH
