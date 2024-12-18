@@ -17,7 +17,7 @@ DASHBOARD_VERSION=
 
 ########
 
-# version: 2024.11.29
+# version: 2024.12.18
 
 warning() { echo -e "\033[31m\033[01m$*\033[0m"; }  # 红色
 error() { echo -e "\033[31m\033[01m$*\033[0m" && exit 1; } # 红色
@@ -146,6 +146,36 @@ if [[ "${DASHBOARD_UPDATE}${CLOUDFLARED_UPDATE}${IS_BACKUP}${FORCE_UPDATE}" =~ t
       supervisorctl stop nezha >/dev/null 2>&1
     fi
     sleep 10
+
+    # 优化数据库，感谢 longsays 的脚本
+    # 1. 导出数据
+    sqlite3 "data/sqlite.db" <<EOF
+.output /tmp/tmp.sql
+.dump
+.quit
+EOF
+
+    # 2. 导入到新库
+    if [ $? -ne 0 ]; then
+      echo "Data export failed!"
+    else
+      sqlite3 "/tmp/new.sqlite.db" <<EOF
+.read /tmp/tmp.sql
+.quit
+EOF
+    fi
+
+    # 3. 检查导入是否成功
+    if [ $? -ne 0 ]; then
+      echo "Data import failed!"
+    else
+      # 覆盖原库并优化
+      mv -f "/tmp/new.sqlite.db" "data/sqlite.db"
+      sqlite3 "data/sqlite.db" 'VACUUM;'
+      [ $? -eq 0 ] && echo "Database migration and optimisation complete!" || echo "Database migration and optimisation failed!"
+      # 清理临时文件
+      rm -f /tmp/tmp.sql
+    fi
 
     # 克隆现有备份库
     [ -d /tmp/$GH_REPO ] && rm -rf /tmp/$GH_REPO

@@ -35,6 +35,7 @@ Documentation: [English version](https://github.com/fscarmen2/Argo-Nezha-Service
 * Grpc 反向代理的 gRPC 数据端口 --- 配上证书做 tls 终结，然后 Argo 的隧道配置用 https 服务指向这个反向代理，启用http2回源，grpc(nezha)->Grpc Proxy->h2(argo)->cf cdn edge->agent
 * 每天自动备份 --- 数据持久化从本地改为线上，北京时间每天 4 时 0 分自动备份整个哪吒面板文件夹到指定的 github 私库，包括面板主题，面板设置，探针数据和隧道信息，备份保留近 5 天数据；鉴于内容十分重要，必须要放在私库
 * 每天自动更新面板和更新脚本 -- 北京时间每天 4 时 0 分自动检测最新的官方面板版本及备份还原脚本，有升级时自动更新
+* 每天自动优化 SQLite 数据库 --- 北京时间每天 4 时 0 分自动使用 `sqlite3 "sqlite.db" 'VACUUM;'` 优化瘦身数据库
 * 手/自一体还原备份 --- 每分钟检测一次在线还原文件的内容，遇到有更新立刻还原
 * 默认内置本机探针 --- 能很方便的监控自身服务器信息
 
@@ -145,7 +146,6 @@ docker run -dit \
 
 ### docker-compose 部署
 ```
-version: '3.8'
 networks:
     nezha-dashboard:
         name: nezha-dashboard
@@ -159,7 +159,7 @@ services:
             - nezha-dashboard
         environment:
             - GH_USER=<填 github 用户名>
-            - GH_EMAIL=<<填 github 邮箱>
+            - GH_EMAIL=<填 github 邮箱>
             - GH_PAT=<填获取的>
             - GH_REPO=<填自定义的>
             - GH_CLIENTID=<填获取的>

@@ -35,6 +35,7 @@ Documentation: English version | [中文版](https://github.com/fscarmen2/Argo-N
 * Grpc Proxy reverse proxy gRPC data port --- with a certificate for tls termination, then Argo's tunnel configuration with https service pointing to this reverse proxy, enable http2 back to the source, grpc(nezha)->Grpc Proxy->h2(argo)->cf cdn edge->agent
 * Daily automatic backup --- Data persistence changed from local to online. Every day at 04:00 BST, the entire Nezha panel folder is automatically backed up to a designated private github repository, including panel themes, panel settings, probe data and tunnel information, the backup retains nearly 5 days of data; the content is so important that it must be placed in the private repository.
 * Automatically update the control panel and scripts daily - Check for the latest official control panel version and backup/restore script at 04:00 every day. If an upgrade is available, perform an automatic update.
+* Automatically optimize the SQLite database daily --- Automatically use the command `sqlite3 "sqlite.db" 'VACUUM;'` to optimize and slim down the database at 04:00 every day.
 * Manual/automatic restore backup --- check the content of online restore file once a minute, and restore immediately when there is any update.
 * Default built-in local probes --- can easily monitor their own server information
 
@@ -145,7 +146,6 @@ docker run -dit \
 
 ### docker-compose deployment
 ```
-version: '3.8'
 networks:
     nezha-dashboard:
         name: nezha-dashboard
@@ -160,7 +160,7 @@ services.
         environment:
             - GH_USER=<fill in github username>
             - GH_EMAIL=<fill in your github email>
-            - GH_PAT=<<fill in obtained>
+            - GH_PAT=<fill in obtained>
             - GH_REPO=<fill in customized>
             - GH_CLIENTID=<fill in obtained>
             - GH_CLIENTSECRET=<fill in fetched>
