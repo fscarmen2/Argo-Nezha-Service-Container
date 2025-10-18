@@ -179,6 +179,12 @@ services:
 
 
 ## VPS 部署方式 2 --- 宿主机
+
+说明:
+- 支持系统：Debian 9+/Ubuntu 16+/CentOS 7+/Amazon Linux/Alpine/Arch
+- 支持架构：amd64/x86_64、arm64/aarch64、armv7
+- 需以 root 权限运行
+
 ```
 bash <(wget -qO- https://raw.githubusercontent.com/fscarmen2/Argo-Nezha-Service-Container/main/dashboard.sh)
 ```

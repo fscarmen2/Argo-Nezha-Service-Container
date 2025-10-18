@@ -180,6 +180,12 @@ services.
 
 
 ## VPS Deployment Method 2 --- hosts
+
+Notes:
+- Supported systems: Debian 9+/Ubuntu 16+/CentOS 7+/Amazon Linux/Alpine/Arch
+- Supported architectures: amd64/x86_64, arm64/aarch64, armv7
+- Must be run as root
+
 ```
 bash <(wget -qO- https://raw.githubusercontent.com/fscarmen2/Argo-Nezha-Service-Container/main/dashboard.sh)
 ```

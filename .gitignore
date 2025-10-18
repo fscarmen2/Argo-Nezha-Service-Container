@@ -1,0 +1,25 @@
+# OS / editor junk
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Logs
+*.log
+
+# Local env
+.env
+.env.*
+
+# Archives and temp
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.tmp
+*.bak
+
+# Python cache (in case scripts are added)
+__pycache__/
+*.pyc
