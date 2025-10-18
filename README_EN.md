@@ -9,8 +9,9 @@ Documentation: English version | [中文版](https://github.com/fscarmen2/Argo-N
 # Catalog
 
 - [Project Features](README_EN.md#project-features)
+- [Video Deployment Tutorial](README_EN.md#video-deployment-tutorial)
+- [Prepare variables to be used](README_EN.md#prepare-variables-to-be-used)
 - [How to get Argo authentication: json or token](README_EN.md#How-to-get-Argo-authentication-json-or-token)
-- [Variables to be used](README_EN.md#prepare-variables-to-be-used)
 - [PaaS Deployment Example](README_EN.md#paas-deployment-example)
 - [VPS Deployment Method 1 --- docker](README_EN.md#vps-deployment-method-1-----docker)
 - [VPS Deployment Method 2 --- hosts](README_EN.md#vps-deployment-method-2-----hosts)
@@ -40,6 +41,11 @@ Documentation: English version | [中文版](https://github.com/fscarmen2/Argo-N
 * Default built-in local probes --- can easily monitor their own server information
 
 <img width="1609" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/ecd9d887-68f0-46f9-9a63-eb0275f066eb">
+
+
+## Video Deployment Tutorial
+
+▶️ [【YouTube】Deploy Nezha Monitor Without a VPS: An Innovative Solution Using PaaS, Cloudflare, and GitHub](https://www.youtube.com/watch?v=YaQFfMckXFQ) — by kejiland
 
 
 ## Prepare variables to be used

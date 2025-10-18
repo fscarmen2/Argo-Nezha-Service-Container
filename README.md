@@ -9,6 +9,7 @@ Documentation: [English version](https://github.com/fscarmen2/Argo-Nezha-Service
 # 目录
 
 - [项目特点](README.md#项目特点)
+- [视频部署教学](README.md#视频部署教学)
 - [准备需要用的变量](README.md#准备需要用的变量)
 - [Argo 认证的获取方式: json 或 token](README.md#argo-认证的获取方式-json-或-token)
 - [PaaS 部署实例](README.md#PaaS-部署实例)
@@ -40,6 +41,10 @@ Documentation: [English version](https://github.com/fscarmen2/Argo-Nezha-Service
 * 默认内置本机探针 --- 能很方便的监控自身服务器信息
 
 <img width="1609" alt="image" src="https://github.com/fscarmen2/Argo-Nezha-Service-Container/assets/92626977/ecd9d887-68f0-46f9-9a63-eb0275f066eb">
+
+
+## 视频部署教学
+▶️ [【YouTube】无VPS搭建哪吒探针：使用Paas、Cloudflare与GitHub的创新方案](https://www.youtube.com/watch?v=YaQFfMckXFQ) — by 科技Land
 
 
 ## 准备需要用的变量
