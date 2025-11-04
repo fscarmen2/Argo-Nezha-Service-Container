@@ -10,6 +10,7 @@ Documentation: [English version](https://github.com/fscarmen2/Argo-Nezha-Service
 
 - [项目特点](README.md#项目特点)
 - [视频部署教学](README.md#视频部署教学)
+- [其他开发者项目](README.md#其他开发者项目)
 - [准备需要用的变量](README.md#准备需要用的变量)
 - [Argo 认证的获取方式: json 或 token](README.md#argo-认证的获取方式-json-或-token)
 - [PaaS 部署实例](README.md#PaaS-部署实例)
@@ -46,6 +47,25 @@ Documentation: [English version](https://github.com/fscarmen2/Argo-Nezha-Service
 ## 视频部署教学
 ▶️ [【YouTube】无VPS搭建哪吒探针：使用Paas、Cloudflare与GitHub的创新方案](https://www.youtube.com/watch?v=YaQFfMckXFQ) — by 科技Land
 
+## 其他开发者项目
+
+除了本项目外，社区中还有其他优秀的开发者提供了不同的部署方案和功能增强版本：
+
+### Kiritocyz/Argo-Nezha-Service-Container
+项目地址: https://github.com/Kiritocyz/Argo-Nezha-Service-Container
+
+此项目是本项目的扩展版本，具有以下特点：
+- 同时支持哪吒监控 v0 和 v1 版本
+- 支持 Docker 和 VPS 两种部署方式
+
+### IonRh/nezha_v1
+项目地址: https://github.com/IonRh/nezha_v1
+
+专门针对哪吒监控 v1 版本的 Docker 部署方案：
+- 专为哪吒 v1 设计
+- 简化的 Docker 部署流程
+
+这些项目为不同需求的用户提供了更多选择，可以根据具体需求选择合适的部署方案。
 
 ## 准备需要用的变量
 * 到 Cloudflare 官网，选择使用的域名，打开 `网络` 选项将 `gRPC` 开关打开

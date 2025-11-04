@@ -10,6 +10,7 @@ Documentation: English version | [中文版](https://github.com/fscarmen2/Argo-N
 
 - [Project Features](README_EN.md#project-features)
 - [Video Deployment Tutorial](README_EN.md#video-deployment-tutorial)
+- [Additional Developer Projects](README_EN.md#additional-developer-projects)
 - [Prepare variables to be used](README_EN.md#prepare-variables-to-be-used)
 - [How to get Argo authentication: json or token](README_EN.md#How-to-get-Argo-authentication-json-or-token)
 - [PaaS Deployment Example](README_EN.md#paas-deployment-example)
@@ -47,6 +48,26 @@ Documentation: English version | [中文版](https://github.com/fscarmen2/Argo-N
 
 ▶️ [【YouTube】Deploy Nezha Monitor Without a VPS: An Innovative Solution Using PaaS, Cloudflare, and GitHub](https://www.youtube.com/watch?v=YaQFfMckXFQ) — by kejiland
 
+
+## Additional Developer Projects
+
+In addition to this project, there are other excellent developers in the community who have provided different deployment solutions and enhanced versions:
+
+### Kiritocyz/Argo-Nezha-Service-Container
+Project URL: https://github.com/Kiritocyz/Argo-Nezha-Service-Container
+
+This project is an extended version of this project with the following features:
+- Supports both Nezha Monitoring v0 and v1 versions
+- Supports both Docker and VPS deployment methods
+
+### IonRh/nezha_v1
+Project URL: https://github.com/IonRh/nezha_v1
+
+Docker deployment solution specifically for Nezha Monitoring v1 version:
+- Designed specifically for Nezha v1
+- Simplified Docker deployment process
+
+These projects provide more choices for users with different needs, and you can choose the appropriate deployment solution according to specific requirements.
 
 ## Prepare variables to be used
 * Visit the Cloudflare website, select the domain name you want to use, and turn on the `network` option to turn the `gRPC` switch on.
