@@ -302,5 +302,5 @@ EOF
 
 fi
 
-# 运行 supervisor 进程守护
-supervisord -c /etc/supervisor/supervisord.conf
+# 运行 supervisor 进程守护，并让其成为真正的 PID 1
+exec supervisord -c /etc/supervisor/supervisord.conf
