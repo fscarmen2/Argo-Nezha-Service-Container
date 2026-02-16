@@ -129,7 +129,7 @@ Argo 隧道认证方式有 json 和 token，使用两个方式其中之一。推
   | ARGO_AUTH           | 是 | Json: 从 https://fscarmen.cloudflare.now.cc 获取的 Argo Json<br> Token: 从 Cloudflare 官网获取 |
   | ARGO_DOMAIN         | 是 | Argo 域名 |
   | NO_AUTO_RENEW       | 否 | 默认不需要该变量，即每天定时同步在线最新的备份和还原脚本。如不需要该功能，设置此变量，并赋值为 `1` |
-  | DASHBOARD_VERSION   | 否 | 指定面板的版本，以 `v0.00.00` 的格式，后续将固定在该版本不会升级，不填则使用默认的 `v0.20.13` |
+  | DASHBOARD_VERSION   | 否 | 指定面板的版本，以 `v0.00.00` 的格式。<br>版本分配规则：<br>• 版本 < 0.20.13: 从 `naiba/nezha` 下载<br>• 版本 = 0.20.13: 从 `nap0o/nezha-dashboard` 下载<br>• 版本 > 0.20.13: 从 `railzen/nezha-zero` 下载<br>如版本不存在会自动回退到 `railzen/nezha-zero` 最新版本。不填则使用默认的最新版本 |
 
 Koyeb
 

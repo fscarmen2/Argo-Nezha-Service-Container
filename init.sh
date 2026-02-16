@@ -26,7 +26,7 @@ if [ ! -s /etc/supervisor/conf.d/damon.conf ]; then
 
   # 检测是否需要启用 Github CDN，如能直接连通，则不使用
   for PROXY_URL in "${GITHUB_PROXY[@]}"; do
-    local PROXY_STATUS_CODE=$(wget --server-response --spider --quiet --timeout=3 --tries=1 ${PROXY_URL}https://github.com/fscarmen2/Argo-Nezha-Service-Container/raw/main/README.md 2>&1 | awk '/HTTP\//{last_field = $2} END {print last_field}')
+    PROXY_STATUS_CODE=$(wget --server-response --spider --quiet --timeout=3 --tries=1 ${PROXY_URL}https://github.com/fscarmen2/Argo-Nezha-Service-Container/raw/main/README.md 2>&1 | awk '/HTTP\//{last_field = $2} END {print last_field}')
     [ "$PROXY_STATUS_CODE" = "200" ] && GH_PROXY="$PROXY_URL" && break
   done
 
@@ -48,7 +48,7 @@ if [ ! -s /etc/supervisor/conf.d/damon.conf ]; then
     armv7* )
       ARCH=arm
       ;;
-    * ) error " $(text 2) "
+    * ) error "Unsupported architecture"
   esac
 
   # 用户选择使用 gRPC 反代方式: Nginx / Caddy / grpcwebproxy，默认为 Caddy；如需使用 grpcwebproxy，把 REVERSE_PROXY_MODE 的值设为 nginx 或 grpcwebproxy
@@ -111,11 +111,63 @@ EOF
   fi
 
   # 下载需要的应用
-  if [ -z "$DASHBOARD_VERSION" ] || [[ "$DASHBOARD_VERSION" =~ 0\.20\.13$ ]]; then
-    wget -O /tmp/dashboard.zip ${GH_PROXY}https://github.com/nap0o/nezha-dashboard/releases/download/v0.20.13/dashboard-linux-$ARCH.zip
-  elif [[ "$DASHBOARD_VERSION" =~ 0\.[0-9]{1,2}\.[0-9]{1,2}$ ]]; then
-    DASHBOARD_LATEST=$(sed 's/v//; s/^/v&/' <<< "$DASHBOARD_VERSION")
-    wget -O /tmp/dashboard.zip ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip
+  if [ -z "$DASHBOARD_VERSION" ]; then
+    # 空值情况：从 railzen/nezha-zero 获取最新版本
+    LATEST_VERSION=$(wget -qO- ${GH_PROXY}https://api.github.com/repos/railzen/nezha-zero/releases/latest | awk -F '"' '/"tag_name"/{print $4}')
+    if [ -n "$LATEST_VERSION" ]; then
+      wget -O /tmp/dashboard.zip ${GH_PROXY}https://github.com/railzen/nezha-zero/releases/download/$LATEST_VERSION/dashboard-linux-$ARCH.zip
+    else
+      error "Failed to get latest version from railzen/nezha-zero"
+    fi
+  elif [[ "$DASHBOARD_VERSION" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    # 版本格式验证通过，开始处理
+    VERSION_NUM=${DASHBOARD_VERSION#v}  # 去掉可能的 v 前缀
+
+    # 比较版本号
+    if [ "$VERSION_NUM" = "0.20.13" ]; then
+      # 版本 = 0.20.13：从 nap0o/nezha-dashboard 下载
+      if wget -q --spider ${GH_PROXY}https://github.com/nap0o/nezha-dashboard/releases/download/v0.20.13/dashboard-linux-$ARCH.zip 2>/dev/null; then
+        wget -O /tmp/dashboard.zip ${GH_PROXY}https://github.com/nap0o/nezha-dashboard/releases/download/v0.20.13/dashboard-linux-$ARCH.zip
+      else
+        # 版本不存在，使用 railzen/nezha-zero 最新版本
+        LATEST_VERSION=$(wget -qO- ${GH_PROXY}https://api.github.com/repos/railzen/nezha-zero/releases/latest | awk -F '"' '/"tag_name"/{print $4}')
+        if [ -n "$LATEST_VERSION" ]; then
+          wget -O /tmp/dashboard.zip ${GH_PROXY}https://github.com/railzen/nezha-zero/releases/download/$LATEST_VERSION/dashboard-linux-$ARCH.zip
+        else
+          error "Failed to get latest version from railzen/nezha-zero"
+        fi
+      fi
+    elif [ "$(printf '%s\n%s' "$VERSION_NUM" "0.20.13" | sort -V | head -n1)" = "$VERSION_NUM" ]; then
+      # 版本 < 0.20.13：从 naiba/nezha 下载
+      VERSION_TAG=v$VERSION_NUM
+      if wget -q --spider ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$VERSION_TAG/dashboard-linux-$ARCH.zip 2>/dev/null; then
+        wget -O /tmp/dashboard.zip ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$VERSION_TAG/dashboard-linux-$ARCH.zip
+      else
+        # 版本不存在，使用 railzen/nezha-zero 最新版本
+        LATEST_VERSION=$(wget -qO- ${GH_PROXY}https://api.github.com/repos/railzen/nezha-zero/releases/latest | awk -F '"' '/"tag_name"/{print $4}')
+        if [ -n "$LATEST_VERSION" ]; then
+          wget -O /tmp/dashboard.zip ${GH_PROXY}https://github.com/railzen/nezha-zero/releases/download/$LATEST_VERSION/dashboard-linux-$ARCH.zip
+        else
+          error "Failed to get latest version from railzen/nezha-zero"
+        fi
+      fi
+    else
+      # 版本 > 0.20.13：从 railzen/nezha-zero 下载
+      VERSION_TAG=v$VERSION_NUM
+
+      # 先尝试下载指定版本
+      if wget -q --spider ${GH_PROXY}https://github.com/railzen/nezha-zero/releases/download/$VERSION_TAG/dashboard-linux-$ARCH.zip 2>/dev/null; then
+        wget -O /tmp/dashboard.zip ${GH_PROXY}https://github.com/railzen/nezha-zero/releases/download/$VERSION_TAG/dashboard-linux-$ARCH.zip
+      else
+        # 指定版本不存在，获取最新版本
+        LATEST_VERSION=$(wget -qO- ${GH_PROXY}https://api.github.com/repos/railzen/nezha-zero/releases/latest | awk -F '"' '/"tag_name"/{print $4}')
+        if [ -n "$LATEST_VERSION" ]; then
+          wget -O /tmp/dashboard.zip ${GH_PROXY}https://github.com/railzen/nezha-zero/releases/download/$LATEST_VERSION/dashboard-linux-$ARCH.zip
+        else
+          error "Failed to get latest version from railzen/nezha-zero"
+        fi
+      fi
+    fi
   else
     error "The DASHBOARD_VERSION variable should be in a format like v0.00.00, please check."
   fi

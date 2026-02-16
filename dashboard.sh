@@ -16,7 +16,7 @@ mkdir -p $TEMP_DIR
 E[0]="Language:\n 1. English (default) \n 2. 简体中文"
 C[0]="${E[0]}"
 E[1]="Nezha Dashboard for VPS (https://github.com/fscarmen2/Argo-Nezha-Service-Containe).\n  - Goodbye docker!\n  - Goodbye port mapping!\n  - Goodbye IPv4/IPv6 Compatibility!"
-C[1]="哪吒面板 VPS 特供版 (https://github.com/fscarmen2/Argo-Nezha-Service-Containe)\n  - 告别 Docker！\n  - 告别端口映射！\n  - 告别 IPv4/IPv6 兼容性！"
+C[1]="哪吒面板 VPS 特供版 (https://github.com/fscarmen2/Argo-Nezha-Service-Container)\n  - 告别 Docker！\n  - 告别端口映射！\n  - 告别 IPv4/IPv6 兼容性！"
 E[2]="Curren architecture \$(uname -m) is not supported. Feedback: [https://github.com/fscarmen2/Argo-Nezha-Service-Container/issues]"
 C[2]="当前架构 \$(uname -m) 暂不支持,问题反馈:[https://github.com/fscarmen2/Argo-Nezha-Service-Container/issues]"
 E[3]="Input errors up to 5 times.The script is aborted."
@@ -93,12 +93,14 @@ E[38]="Please choose gRPC proxy mode:\n 1. Caddy (default)\n 2. Nginx\n 3. gRPCw
 C[38]="请选择 gRPC 代理模式:\n 1. Caddy (默认)\n 2. Nginx\n 3. gRPCwebProxy"
 E[39]="To uninstall Nginx press [y], it is not uninstalled by default:"
 C[39]="如要卸载 Nginx 请按 [y]，默认不卸载:"
-E[40]="Please enter the specified Nezha dashboard version, it will be fixed in this version, if you skip it, the default v0.20.13 will be used. :"
-C[40]="请填入指定面板版本,后续将固定在该版本，跳过则使用默认的 v0.20.13 :"
+E[40]="Please enter the specified Nezha dashboard version, it will be fixed in this version, if you skip it, the default \$LATEST_VERSION will be used. :"
+C[40]="请填入指定面板版本,后续将固定在该版本，跳过则使用默认的 \$LATEST_VERSION :"
 E[41]="Default: enable automatic online synchronization of the latest backup.sh and restore.sh scripts. If you do not want this feature, enter [n]:"
 C[41]="默认开启自动在线同步最新 backup.sh 和 restore.sh 脚本的功能，如不需要该功能，请输入 [n]:"
 E[42]="The DASHBOARD_VERSION variable should be in a format like v0.00.00 or left blank. Please check."
 C[42]="变量 DASHBOARD_VERSION 必须以 v0.00.00 的格式或者留空，请检查"
+E[43]="Failed to get latest version from railzen/nezha-zero"
+C[43]="无法从 railzen/nezha-zero 获取最新版本"
 
 # 自定义字体彩色，read 函数
 warning() { echo -e "\033[31m\033[01m$*\033[0m"; }  # 红色
@@ -318,12 +320,66 @@ dashboard_variables() {
   fi
 
   # 询问版本自动后台下载
+  LATEST_VERSION=$(wget -qO- ${GH_PROXY}https://api.github.com/repos/railzen/nezha-zero/releases/latest | awk -F '"' '/"tag_name"/{print $4}')
   [ -z "$DASHBOARD_VERSION" ] && reading "\n (11/12) $(text 40) " DASHBOARD_VERSION
-  if [ -z "$DASHBOARD_VERSION" ] || [[ "$DASHBOARD_VERSION" =~ 0\.20\.13$ ]]; then
-    { wget -qO $TEMP_DIR/dashboard.zip ${GH_PROXY}https://github.com/nap0o/nezha-dashboard/releases/download/v0.20.13/dashboard-linux-$ARCH.zip >/dev/null 2>&1; }&
-  elif [[ "$DASHBOARD_VERSION" =~ 0\.[0-9]{1,2}\.[0-9]{1,2}$ ]]; then
-    DASHBOARD_LATEST=$(sed 's/[A-Za-z]//; s/^/v&/' <<< "$DASHBOARD_VERSION")
-    { wget -qO $TEMP_DIR/dashboard.zip ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip >/dev/null 2>&1; }&
+
+  # 处理版本下载逻辑
+  if [ -z "$DASHBOARD_VERSION" ]; then
+    # 空值情况：从 railzen/nezha-zero 获取最新版本
+    if [ -n "$LATEST_VERSION" ]; then
+      { wget -qO $TEMP_DIR/dashboard.zip ${GH_PROXY}https://github.com/railzen/nezha-zero/releases/download/$LATEST_VERSION/dashboard-linux-$ARCH.zip >/dev/null 2>&1; }&
+    else
+      error "\n $(text 43) \n"
+    fi
+  elif [[ "$DASHBOARD_VERSION" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    # 版本格式验证通过，开始处理
+    VERSION_NUM=${DASHBOARD_VERSION#v}  # 去掉可能的 v 前缀
+
+    # 比较版本号
+    if [ "$VERSION_NUM" = "0.20.13" ]; then
+      # 版本 = 0.20.13：从 nap0o/nezha-dashboard 下载
+      if wget -q --spider ${GH_PROXY}https://github.com/nap0o/nezha-dashboard/releases/download/v0.20.13/dashboard-linux-$ARCH.zip 2>/dev/null; then
+        { wget -qO $TEMP_DIR/dashboard.zip ${GH_PROXY}https://github.com/nap0o/nezha-dashboard/releases/download/v0.20.13/dashboard-linux-$ARCH.zip >/dev/null 2>&1; }&
+      else
+        # 版本不存在，使用 railzen/nezha-zero 最新版本
+        LATEST_VERSION=$(wget -qO- ${GH_PROXY}https://api.github.com/repos/railzen/nezha-zero/releases/latest | awk -F '"' '/"tag_name"/{print $4}')
+        if [ -n "$LATEST_VERSION" ]; then
+          { wget -qO $TEMP_DIR/dashboard.zip ${GH_PROXY}https://github.com/railzen/nezha-zero/releases/download/$LATEST_VERSION/dashboard-linux-$ARCH.zip >/dev/null 2>&1; }&
+        else
+          error "\n $(text 43) \n"
+        fi
+      fi
+    elif [ "$(printf '%s\n%s' "$VERSION_NUM" "0.20.13" | sort -V | head -n1)" = "$VERSION_NUM" ]; then
+      # 版本 < 0.20.13：从 naiba/nezha 下载
+      VERSION_TAG=v$VERSION_NUM
+      if wget -q --spider ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$VERSION_TAG/dashboard-linux-$ARCH.zip 2>/dev/null; then
+        { wget -qO $TEMP_DIR/dashboard.zip ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$VERSION_TAG/dashboard-linux-$ARCH.zip >/dev/null 2>&1; }&
+      else
+        # 版本不存在，使用 railzen/nezha-zero 最新版本
+        LATEST_VERSION=$(wget -qO- ${GH_PROXY}https://api.github.com/repos/railzen/nezha-zero/releases/latest | awk -F '"' '/"tag_name"/{print $4}')
+        if [ -n "$LATEST_VERSION" ]; then
+          { wget -qO $TEMP_DIR/dashboard.zip ${GH_PROXY}https://github.com/railzen/nezha-zero/releases/download/$LATEST_VERSION/dashboard-linux-$ARCH.zip >/dev/null 2>&1; }&
+        else
+          error "\n $(text 43) \n"
+        fi
+      fi
+    else
+      # 版本 > 0.20.13：从 railzen/nezha-zero 下载
+      VERSION_TAG=v$VERSION_NUM
+
+      # 先尝试下载指定版本
+      if wget -q --spider ${GH_PROXY}https://github.com/railzen/nezha-zero/releases/download/$VERSION_TAG/dashboard-linux-$ARCH.zip 2>/dev/null; then
+        { wget -qO $TEMP_DIR/dashboard.zip ${GH_PROXY}https://github.com/railzen/nezha-zero/releases/download/$VERSION_TAG/dashboard-linux-$ARCH.zip >/dev/null 2>&1; }&
+      else
+        # 指定版本不存在，获取最新版本
+        LATEST_VERSION=$(wget -qO- ${GH_PROXY}https://api.github.com/repos/railzen/nezha-zero/releases/latest | awk -F '"' '/"tag_name"/{print $4}')
+        if [ -n "$LATEST_VERSION" ]; then
+          { wget -qO $TEMP_DIR/dashboard.zip ${GH_PROXY}https://github.com/railzen/nezha-zero/releases/download/$LATEST_VERSION/dashboard-linux-$ARCH.zip >/dev/null 2>&1; }&
+        else
+          error "\n $(text 43) \n"
+        fi
+      fi
+    fi
   else
     error "\n $(text 42) \n"
   fi

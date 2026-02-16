@@ -17,7 +17,7 @@ DASHBOARD_VERSION=
 
 ########
 
-# version: 2024.12.18
+# version: 2026.02.16
 
 warning() { echo -e "\033[31m\033[01m$*\033[0m"; }  # 红色
 error() { echo -e "\033[31m\033[01m$*\033[0m" && exit 1; } # 红色
@@ -67,19 +67,19 @@ touch $(awk -F '=' '/NO_ACTION_FLAG/{print $2; exit}' $WORK_DIR/restore.sh)1
 if [[ -z "$DASHBOARD_VERSION" || "$DASHBOARD_VERSION" =~ 0\.[0-9]{1,2}\.[0-9]{1,2}$ ]]; then
   cd $WORK_DIR
   DASHBOARD_NOW=$(./app -v)
-  [ -z "$DASHBOARD_VERSION" ] && DASHBOARD_LATEST='v0.20.13' || DASHBOARD_LATEST=$(sed 's/v//; s/^/v&/' <<< "$DASHBOARD_VERSION")
+  [ -z "$DASHBOARD_VERSION" ] && DASHBOARD_LATEST=$(wget -qO- ${GH_PROXY}https://api.github.com/repos/railzen/nezha-zero/releases/latest | awk -F '"' '/"tag_name"/{print $4}') || DASHBOARD_LATEST=$(sed 's/v//; s/^/v&/' <<< "$DASHBOARD_VERSION")
   [ "v${DASHBOARD_NOW}" != "$DASHBOARD_LATEST" ] && DASHBOARD_UPDATE=true
 else
   error "The DASHBOARD_VERSION variable should be in a format like v0.00.00, please check."
 fi
 
 CLOUDFLARED_NOW=$(./cloudflared -v | awk '{for (i=0; i<NF; i++) if ($i=="version") {print $(i+1)}}')
-CLOUDFLARED_LATEST=$(wget -qO- https://api.github.com/repos/cloudflare/cloudflared/releases/latest | awk -F '"' '/tag_name/{print $4}')
+CLOUDFLARED_LATEST=$(wget -qO- ${GH_PROXY}https://api.github.com/repos/cloudflare/cloudflared/releases/latest | awk -F '"' '/tag_name/{print $4}')
 [[ "$CLOUDFLARED_LATEST" =~ ^20[0-9]{2}\.[0-9]{1,2}\.[0-9]+$ && "$CLOUDFLARED_NOW" != "$CLOUDFLARED_LATEST" ]] && CLOUDFLARED_UPDATE=true
 
 # 检测是否有设置备份数据
 if [[ -n "$GH_REPO" && -n "$GH_BACKUP_USER" && -n "$GH_EMAIL" && -n "$GH_PAT" ]]; then
-  IS_PRIVATE="$(wget -qO- --header="Authorization: token $GH_PAT" https://api.github.com/repos/$GH_BACKUP_USER/$GH_REPO | sed -n '/"private":/s/.*:[ ]*\([^,]*\),/\1/gp')"
+  IS_PRIVATE="$(wget -qO- --header="Authorization: token $GH_PAT" ${GH_PROXY}https://api.github.com/repos/$GH_BACKUP_USER/$GH_REPO | sed -n '/"private":/s/.*:[ ]*\([^,]*\),/\1/gp')"
   if [ "$?" != 0 ]; then
     warning "\n Could not connect to Github. Stop backup. \n"
   elif [ "$IS_PRIVATE" != true ]; then
@@ -93,8 +93,43 @@ fi
 if [[ "${DASHBOARD_UPDATE}${CLOUDFLARED_UPDATE}${IS_BACKUP}${FORCE_UPDATE}" =~ true ]]; then
   # 更新面板主程序
   if [[ "${DASHBOARD_UPDATE}${FORCE_UPDATE}" =~ 'true' ]]; then
-    hint "\n Renew dashboard app to $DASHBOARD_LATEST \n"
-    wget -O /tmp/dashboard.zip ${GH_PROXY}https://github.com/nap0o/nezha-dashboard/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip
+
+    # 根据 DASHBOARD_LATEST 版本号判断下载源
+    VERSION_NUM=${DASHBOARD_LATEST#v}  # 去掉 v 前缀
+
+    # 比较版本号
+    if [ "$VERSION_NUM" = "0.20.13" ]; then
+      # 版本 = 0.20.13：从 nap0o/nezha-dashboard 下载
+      if wget -q --spider ${GH_PROXY}https://github.com/nap0o/nezha-dashboard/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip 2>/dev/null; then
+        hint "\n Renew dashboard app to $DASHBOARD_LATEST \n"
+        wget -O /tmp/dashboard.zip ${GH_PROXY}https://github.com/nap0o/nezha-dashboard/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip
+      else
+        # 版本不存在，使用 railzen/nezha-zero 最新版本
+        DASHBOARD_LATEST=$(wget -qO- ${GH_PROXY}https://api.github.com/repos/railzen/nezha-zero/releases/latest | awk -F '"' '/"tag_name"/{print $4}')
+        [ -n "$DASHBOARD_LATEST" ] && hint "\n Renew dashboard app to $DASHBOARD_LATEST \n" && wget -O /tmp/dashboard.zip ${GH_PROXY}https://github.com/railzen/nezha-zero/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip || error "Failed to download dashboard"
+      fi
+    elif [ "$(printf '%s\n%s' "$VERSION_NUM" "0.20.13" | sort -V | head -n1)" = "$VERSION_NUM" ]; then
+      # 版本 < 0.20.13：从 naiba/nezha 下载
+      if wget -q --spider ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip 2>/dev/null; then
+        hint "\n Renew dashboard app to $DASHBOARD_LATEST \n"
+        wget -O /tmp/dashboard.zip ${GH_PROXY}https://github.com/naiba/nezha/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip
+      else
+        # 版本不存在，使用 railzen/nezha-zero 最新版本
+        DASHBOARD_LATEST=$(wget -qO- ${GH_PROXY}https://api.github.com/repos/railzen/nezha-zero/releases/latest | awk -F '"' '/"tag_name"/{print $4}')
+        [ -n "$DASHBOARD_LATEST" ] && hint "\n Renew dashboard app to $DASHBOARD_LATEST \n" && wget -O /tmp/dashboard.zip ${GH_PROXY}https://github.com/railzen/nezha-zero/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip || error "Failed to download dashboard"
+      fi
+    else
+      # 版本 > 0.20.13：从 railzen/nezha-zero 下载
+      if wget -q --spider ${GH_PROXY}https://github.com/railzen/nezha-zero/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip 2>/dev/null; then
+        hint "\n Renew dashboard app to $DASHBOARD_LATEST \n"
+        wget -O /tmp/dashboard.zip ${GH_PROXY}https://github.com/railzen/nezha-zero/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip
+      else
+        # 版本不存在，使用 railzen/nezha-zero 最新版本
+        DASHBOARD_LATEST=$(wget -qO- ${GH_PROXY}https://api.github.com/repos/railzen/nezha-zero/releases/latest | awk -F '"' '/"tag_name"/{print $4}')
+        [ -n "$DASHBOARD_LATEST" ] && hint "\n Renew dashboard app to $DASHBOARD_LATEST \n" && wget -O /tmp/dashboard.zip ${GH_PROXY}https://github.com/railzen/nezha-zero/releases/download/$DASHBOARD_LATEST/dashboard-linux-$ARCH.zip || error "Failed to download dashboard"
+      fi
+    fi
+
     unzip -o /tmp/dashboard.zip -d /tmp
     chmod +x /tmp/dashboard-linux-$ARCH
     if [ -s /tmp/dashboard-linux-$ARCH ]; then
@@ -148,6 +183,28 @@ if [[ "${DASHBOARD_UPDATE}${CLOUDFLARED_UPDATE}${IS_BACKUP}${FORCE_UPDATE}" =~ t
     sleep 10
 
     # 优化数据库，感谢 longsays 的脚本
+    # 检查并安装 sqlite3 依赖
+    if ! command -v sqlite3 &> /dev/null; then
+      echo "SQLite3 not found. Installing SQLite3..."
+      case "$SYSTEM" in
+        "Debian"|"Ubuntu")
+          apt-get update && apt-get -y install sqlite3
+          ;;
+        "CentOS")
+          yum update -y && yum install -y sqlite
+          ;;
+        "Arch")
+          pacman -Sy --noconfirm sqlite
+          ;;
+        "Alpine")
+          apk add --no-cache sqlite
+          ;;
+        *)
+          error "Unsupported system: $SYSTEM. Only support Debian, Ubuntu, CentOS, Arch, Alpine."
+          ;;
+      esac
+    fi
+
     # 1. 导出数据
     sqlite3 "data/sqlite.db" <<EOF
 .output /tmp/tmp.sql

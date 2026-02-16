@@ -131,7 +131,7 @@ Variables used
   | ARGO_AUTH          | Yes | Argo Json from https://fscarmen.cloudflare.now.cc<br>Argo token from Cloudflare official website  |
   | ARGO_DOMAIN        | Yes | Argo domain |
   | NO_AUTO_RENEW      | No | The latest backup and restore scripts are synchronized online regularly every day. If you don't need this feature, set this variable and assign it a value of `1` |
-  | DASHBOARD_VERSION  | No | Specify the version of dashboard, in the format of v0.00.00. Nezha dashboard will be fixed at this version and will not be upgraded, if you don't fill in the blank, it will use the default v0.20.13 |
+  | DASHBOARD_VERSION  | No | Specify the version of dashboard, in the format of v0.00.00.<br>Version distribution rules:<br>• Version < 0.20.13: Download from `naiba/nezha`<br>• Version = 0.20.13: Download from `nap0o/nezha-dashboard`<br>• Version > 0.20.13: Download from `railzen/nezha-zero`<br>If version doesn't exist, it will automatically fallback to latest version from `railzen/nezha-zero`. If left blank, it will use the default latest version |
 
 Koyeb
 
