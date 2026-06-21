@@ -398,8 +398,7 @@ install() {
 
   # 根据 caddy，grpcwebproxy 或 nginx 作处理
   if  [ "$REVERSE_PROXY_MODE" = 'caddy' ]; then
-    local CADDY_LATEST=$(wget -qO- "${GH_PROXY}https://api.github.com/repos/caddyserver/caddy/releases/latest" | awk -F [v\"] '/"tag_name"/{print $5}' || echo '2.7.6')
-    wget -c ${GH_PROXY}https://github.com/caddyserver/caddy/releases/download/v${CADDY_LATEST}/caddy_${CADDY_LATEST}_linux_${ARCH}.tar.gz -qO- | tar xz -C $TEMP_DIR caddy >/dev/null 2>&1
+    wget -c ${GH_PROXY}https://github.com/caddyserver/caddy/releases/download/v2.11.3/caddy_2.11.3_linux_${ARCH}.tar.gz -qO- | tar xz -C $TEMP_DIR caddy >/dev/null 2>&1
     GRPC_PROXY_RUN="$WORK_DIR/caddy run --config $WORK_DIR/Caddyfile --watch"
     cat > $TEMP_DIR/Caddyfile  << EOF
 {

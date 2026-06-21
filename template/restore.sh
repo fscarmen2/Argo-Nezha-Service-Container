@@ -14,7 +14,7 @@ IS_DOCKER=
 
 ########
 
-# version: 2024.04.02
+# version: 2026.06.21
 
 trap "rm -rf $TEMP_DIR; echo -e '\n' ;exit" INT QUIT TERM EXIT
 
@@ -95,16 +95,17 @@ CONFIG_LANGUAGE=$(grep -i '^Language:' <<< "$CONFIG_YAML")
 CONFIG_GRPCPORT=$(grep -i '^GRPCPort:' <<< "$CONFIG_YAML")
 CONFIG_GRPCHOST=$(grep -i '^GRPCHost:' <<< "$CONFIG_YAML")
 CONFIG_PROXYGRPCPORT=$(grep -i '^ProxyGRPCPort:' <<< "$CONFIG_YAML")
-CONFIG_TYPE=$(sed -n '/Type:/ s/^[ ]\+//gp' <<< "$CONFIG_YAML")
-CONFIG_ADMIN=$(sed -n '/Admin:/ s/^[ ]\+//gp' <<< "$CONFIG_YAML")
-CONFIG_CLIENTID=$(sed -n '/ClientID:/ s/^[ ]\+//gp' <<< "$CONFIG_YAML")
-CONFIG_CLIENTSECRET=$(sed -n '/ClientSecret:/ s/^[ ]\+//gp' <<< "$CONFIG_YAML")
+CONFIG_TYPE=$(sed -n '/Type:/I s/^[ ]\+//gp' <<< "$CONFIG_YAML")
+CONFIG_ADMIN=$(sed -n '/Admin:/I s/^[ ]\+//gp' <<< "$CONFIG_YAML")
+CONFIG_CLIENTID=$(sed -n '/ClientID:/I s/^[ ]\+//gp' <<< "$CONFIG_YAML")
+CONFIG_CLIENTSECRET=$(sed -n '/ClientSecret:/I s/^[ ]\+//gp' <<< "$CONFIG_YAML")
 
 # 如 dbfile 不为空，即不是首次安装，记录当前面板的主题等信息
 if [ -s $WORK_DIR/dbfile ]; then
   CONFIG_BRAND=$(sed -n '/brand:/s/^[ ]\+//gp' <<< "$CONFIG_YAML")
   CONFIG_COOKIENAME=$(sed -n '/cookiename:/s/^[ ]\+//gp' <<< "$CONFIG_YAML")
-  CONFIG_THEME=$(sed -n '/theme:/s/^[ ]\+//gp' <<< "$CONFIG_YAML")
+  CONFIG_THEME=$(sed -n '/^[[:space:]]*theme:/s/^[ ]\+//gp' <<< "$CONFIG_YAML")
+  CONFIG_DASHBOARDTHEME=$(sed -n '/^[[:space:]]*dashboardtheme:/s/^[ ]\+//gp' <<< "$CONFIG_YAML")
   CONFIG_AVGPINGCOUNT=$(grep -i 'AvgPingCount:' <<< "$CONFIG_YAML")
   CONFIG_MAXTCPPINGVALUE=$(grep -i 'MaxTCPPingValue:' <<< "$CONFIG_YAML")
 fi
@@ -155,7 +156,7 @@ if [ -e $TEMP_DIR/backup.tar.gz ]; then
 
   # 逻辑是安装首次使用备份文件里的主题信息，之后使用本地最新的主题信息和 MaxTCPPingValue, AvgPingCount
   [[ -n "$CONFIG_BRAND" && -n "$CONFIG_COOKIENAME" && -n "$CONFIG_THEME" ]] &&
-  sed -i "s@brand:.*@$CONFIG_BRAND@; s@cookiename:.*@$CONFIG_COOKIENAME@; s@theme:.*@$CONFIG_THEME@" ${TEMP_DIR}/${FILE_PATH}data/config.yaml
+  sed -i "s@brand:.*@$CONFIG_BRAND@; s@cookiename:.*@$CONFIG_COOKIENAME@; s@theme:.*@$CONFIG_THEME@; s@dashboardtheme:.*@$CONFIG_DASHBOARDTHEME@" ${TEMP_DIR}/${FILE_PATH}data/config.yaml
 
   [[ "$(awk '{print $NF}' <<< "$CONFIG_AVGPINGCOUNT")" =~ ^[0-9]+$ ]] && sed -i "s@AvgPingCount:.*@$CONFIG_AVGPINGCOUNT@" ${TEMP_DIR}/${FILE_PATH}data/config.yaml
 
